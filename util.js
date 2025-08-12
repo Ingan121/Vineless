@@ -87,7 +87,7 @@ export class DeviceManager {
     }
 
     static async loadWidevineDevice(name) {
-        const result = await AsyncSyncStorage.getStorage([name]);
+        const result = await AsyncSyncStorage.getStorage([name ?? ""]);
         return result[name] || "";
     }
 
@@ -109,36 +109,32 @@ export class DeviceManager {
         }
     }
 
-    static async saveSelectedWidevineDevice(name) {
-        await AsyncSyncStorage.setStorage({ selected: name });
+    static async saveGlobalSelectedWidevineDevice(name) {
+        const config = await SettingsManager.getProfile();
+        config.widevine.device.local = name;
+        await SettingsManager.setProfile("global", config);
     }
 
-    static async getSelectedWidevineDevice() {
-        const result = await AsyncSyncStorage.getStorage(["selected"]);
-        return result["selected"] || "";
+    static async getSelectedWidevineDevice(scope) {
+        const config = await SettingsManager.getProfile(scope);
+        return config.widevine?.device?.local || "";
     }
 
     static async selectWidevineDevice(name) {
         document.getElementById('wvd-combobox').value = await this.loadWidevineDevice(name);
     }
 
-    static async removeSelectedWidevineDevice() {
-        const selected_device_name = await DeviceManager.getSelectedWidevineDevice();
-
+    static async removeWidevineDevice(name) {
         const result = await AsyncSyncStorage.getStorage(['devices']);
         const array = result.devices === undefined ? [] : result.devices;
 
-        const index = array.indexOf(selected_device_name);
+        const index = array.indexOf(name);
         if (index > -1) {
             array.splice(index, 1);
         }
 
         await AsyncSyncStorage.setStorage({ devices: array });
-        await AsyncSyncStorage.removeStorage([selected_device_name]);
-    }
-
-    static async removeSelectedWidevineDeviceKey() {
-        await AsyncSyncStorage.removeStorage(["selected"]);
+        await AsyncSyncStorage.removeStorage([name]);
     }
 }
 
@@ -152,7 +148,7 @@ export class PRDeviceManager {
     }
 
     static async loadPlayreadyDevice(name) {
-        const result = await AsyncSyncStorage.getStorage([name]);
+        const result = await AsyncSyncStorage.getStorage([name ?? ""]);
         return result[name] || "";
     }
 
@@ -174,36 +170,32 @@ export class PRDeviceManager {
         }
     }
 
-    static async saveSelectedPlayreadyDevice(name) {
-        await AsyncSyncStorage.setStorage({ prSelected: name });
+    static async saveGlobalSelectedPlayreadyDevice(name) {
+        const config = await SettingsManager.getProfile("global");
+        config.playready.device.local = name;
+        await SettingsManager.setProfile("global", config);
     }
 
-    static async getSelectedPlayreadyDevice() {
-        const result = await AsyncSyncStorage.getStorage(["prSelected"]);
-        return result["prSelected"] || "";
+    static async getSelectedPlayreadyDevice(scope) {
+        const config = await SettingsManager.getProfile(scope);
+        return config.playready?.device?.local || "";
     }
 
     static async selectPlayreadyDevice(name) {
         document.getElementById('prd-combobox').value = await this.loadPlayreadyDevice(name);
     }
 
-    static async removeSelectedPlayreadyDevice() {
-        const selected_device_name = await PRDeviceManager.getSelectedPlayreadyDevice();
-
+    static async removePlayreadyDevice(name) {
         const result = await AsyncSyncStorage.getStorage(['prDevices']);
         const array = result.prDevices === undefined ? [] : result.prDevices;
 
-        const index = array.indexOf(selected_device_name);
+        const index = array.indexOf(name);
         if (index > -1) {
             array.splice(index, 1);
         }
 
         await AsyncSyncStorage.setStorage({ prDevices: array });
-        await AsyncSyncStorage.removeStorage([selected_device_name]);
-    }
-
-    static async removeSelectedPlayreadyDeviceKey() {
-        await AsyncSyncStorage.removeStorage(["prSelected"]);
+        await AsyncSyncStorage.removeStorage([name]);
     }
 }
 
@@ -217,7 +209,7 @@ export class RemoteCDMManager {
     }
 
     static async loadRemoteCDM(name) {
-        const result = await AsyncSyncStorage.getStorage([name]);
+        const result = await AsyncSyncStorage.getStorage([name ?? ""]);
         return JSON.stringify(result[name] || {});
     }
 
@@ -239,84 +231,99 @@ export class RemoteCDMManager {
         }
     }
 
-    static async saveSelectedRemoteCDM(name) {
-        await AsyncSyncStorage.setStorage({ selected_remote_cdm: name });
+    static async saveGlobalSelectedRemoteCDM(name) {
+        const config = await SettingsManager.getProfile("global");
+        config.widevine.device.remote = name;
+        await SettingsManager.setProfile("global", config);
     }
 
-    static async getSelectedRemoteCDM() {
-        const result = await AsyncSyncStorage.getStorage(["selected_remote_cdm"]);
-        return result["selected_remote_cdm"] || "";
+    static async getSelectedRemoteCDM(scope) {
+        const config = await SettingsManager.getProfile(scope);
+        return config.widevine?.device?.remote || "";
     }
 
     static async selectRemoteCDM(name) {
         document.getElementById('remote-combobox').value = await this.loadRemoteCDM(name);
     }
 
-    static async removeSelectedRemoteCDM() {
-        const selected_remote_cdm_name = await RemoteCDMManager.getSelectedRemoteCDM();
-
+    static async removeRemoteCDM(name) {
         const result = await AsyncSyncStorage.getStorage(['remote_cdms']);
         const array = result.remote_cdms === undefined ? [] : result.remote_cdms;
 
-        const index = array.indexOf(selected_remote_cdm_name);
+        const index = array.indexOf(name);
         if (index > -1) {
             array.splice(index, 1);
         }
 
         await AsyncSyncStorage.setStorage({ remote_cdms: array });
-        await AsyncSyncStorage.removeStorage([selected_remote_cdm_name]);
-    }
-
-    static async removeSelectedRemoteCDMKey() {
-        await AsyncSyncStorage.removeStorage(["selected_remote_cdm"]);
+        await AsyncSyncStorage.removeStorage([name]);
     }
 }
 
 export class SettingsManager {
-    static async setEnabled(enabled) {
-        await AsyncSyncStorage.setStorage({ enabled: enabled });
+    static async getProfile(scope = "global") {
+        const result = await AsyncSyncStorage.getStorage([scope ?? "global"]);
+        if (result[scope] === undefined) {
+            if (scope !== "global") {
+                return await this.getProfile("global");
+            }
+            return {
+                "enabled": true,
+                "widevine": {
+                    "enabled": true,
+                    "device": {
+                        "local": null,
+                        "remote": null
+                    },
+                    "type": "local"
+                },
+                "playready": {
+                    "enabled": true,
+                    "device": {
+                        "local": null
+                    },
+                    "type": "local"
+                },
+                "clearkey": {
+                    "enabled": true
+                },
+                "blockDisabled": false
+            }
+        }
+        return result[scope];
+    }
+
+    static async setProfile(scope, config) {
+        await AsyncSyncStorage.setStorage({ [scope]: config });
+    }
+
+    static async removeProfile(scope) {
+        if (!scope || scope === "global") {
+            return;
+        }
+        await AsyncSyncStorage.removeStorage([scope]);
+    }
+
+    static async profileExists(scope) {
+        const result = await AsyncSyncStorage.getStorage([scope ?? "global"]);
+        return result[scope] !== undefined;
+    }
+
+    static async getGlobalEnabled() {
+        const config = await SettingsManager.getProfile("global");
+        return config.enabled;
+    }
+
+    static async setGlobalEnalbed(enabled) {
+        const config = await SettingsManager.getProfile("global");
+        config.enabled = enabled;
         setIcon(`images/icon${enabled ? '' : '-disabled'}.png`);
-    }
-
-    static async getEnabled() {
-        const result = await AsyncSyncStorage.getStorage(["enabled"]);
-        return result["enabled"] === undefined ? true : result["enabled"];
-    }
-
-    static async setWVEnabled(wvEnabled) {
-        await AsyncSyncStorage.setStorage({ wvEnabled: wvEnabled });
-    }
-
-    static async getWVEnabled(real) {
-        const result = await AsyncSyncStorage.getStorage(["wvEnabled"]);
-        const enabled = result["wvEnabled"] === undefined ? true : result["wvEnabled"];
         if (enabled) {
-            if (real) {
-                return true;
-            }
-            if (await SettingsManager.getSelectedDeviceType() === "WVD") {
-                return !!await DeviceManager.getSelectedWidevineDevice()
-            } else {
-                return !!await RemoteCDMManager.getSelectedRemoteCDM();
-            }
+            await ScriptManager.registerContentScript();
+        } else {
+            await ScriptManager.unregisterContentScript();
         }
-        return false;
-    }
-
-    static async setPREnabled(prEnabled) {
-        await AsyncSyncStorage.setStorage({ prEnabled: prEnabled });
-    }
-
-    static async getPREnabled(real) {
-        const result = await AsyncSyncStorage.getStorage(["prEnabled"]);
-        const enabled = result["prEnabled"] === undefined ? true : result["prEnabled"];
-        if (enabled) {
-            if (real) {
-                return true;
-            }
-            return !!await PRDeviceManager.getSelectedPlayreadyDevice();
-        }
-        return false;
+        await SettingsManager.setProfile("global", config);
     }
 
     static downloadFile(content, filename) {
@@ -360,7 +367,7 @@ export class SettingsManager {
                     await DeviceManager.saveWidevineDevice(device_name, b64_device);
                 }
 
-                await DeviceManager.saveSelectedWidevineDevice(device_name);
+                await DeviceManager.saveGlobalSelectedWidevineDevice(device_name);
                 resolve();
             };
             reader.readAsArrayBuffer(file);
@@ -398,7 +405,7 @@ export class SettingsManager {
                     await RemoteCDMManager.saveRemoteCDM(device_name, json_file);
                 }
 
-                await RemoteCDMManager.saveSelectedRemoteCDM(device_name);
+                await RemoteCDMManager.saveGlobalSelectedRemoteCDM(device_name);
                 resolve();
             };
             reader.readAsText(file);
@@ -418,29 +425,20 @@ export class SettingsManager {
                     await PRDeviceManager.savePlayreadyDevice(device_name, b64_device);
                 }
 
-                await PRDeviceManager.saveSelectedPlayreadyDevice(device_name);
+                await PRDeviceManager.saveGlobalSelectedPlayreadyDevice(device_name);
                 resolve();
             };
             reader.readAsArrayBuffer(file);
         });
     }
 
-    static async saveSelectedDeviceType(selected_type) {
-        await AsyncSyncStorage.setStorage({ device_type: selected_type });
-    }
-
-    static async getSelectedDeviceType() {
-        const result = await AsyncSyncStorage.getStorage(["device_type"]);
-        return result["device_type"] || "WVD";
-    }
-
     static setSelectedDeviceType(device_type) {
         switch (device_type) {
-            case "WVD":
+            case "local":
                 const wvd_select = document.getElementById('wvd_select');
                 wvd_select.checked = true;
                 break;
-            case "REMOTE":
+            case "remote":
                 const remote_select = document.getElementById('remote_select');
                 remote_select.checked = true;
                 break;
@@ -463,6 +461,40 @@ export class SettingsManager {
     static async getExecutableName() {
         const result = await AsyncSyncStorage.getStorage(["exe_name"]);
         return result["exe_name"] ?? "N_m3u8DL-RE";
+    }
+}
+
+export class ScriptManager {
+    static id = "vl-content";
+
+    static async registerContentScript() {
+        const existing = await chrome.scripting.getRegisteredContentScripts({
+            ids: [this.id]
+        });
+        if (existing?.length) {
+            return;
+        }
+
+        await chrome.scripting.registerContentScripts([{
+            id: this.id,
+            js: ['/content_script.js'],
+            matches: ['*://*/*'],
+            runAt: 'document_start',
+            world: 'MAIN',
+            allFrames: true,
+            matchOriginAsFallback: true,
+            persistAcrossSessions: true
+        }]);
+    }
+
+    static async unregisterContentScript() {
+        try {
+            await chrome.scripting.unregisterContentScripts({
+                ids: [this.id]
+            });
+        } catch {
+            // not registered
+        }
     }
 }
 
@@ -556,4 +588,55 @@ export async function setIcon(filename, tabId = undefined) {
         },
         ...(tabId ? { tabId } : {})
     });
+}
+
+export async function setBadgeText(text, tabId = undefined) {
+    const isMV3 = typeof chrome.action !== "undefined";
+    if (!isMV3) {
+        chrome.browserAction.setBadgeText({
+            text,
+            ...(tabId ? { tabId } : {})
+        });
+        chrome.browserAction.setBadgeBackgroundColor({ color: "#2169eb" });
+        return;
+    }
+
+    chrome.action.setBadgeText({
+        text,
+        ...(tabId ? { tabId } : {})
+    });
+    chrome.action.setBadgeBackgroundColor({ color: "#2169eb" });
+}
+
+export async function getForegroundTab() {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+            if (tabs.length > 0) {
+                resolve(tabs[0]);
+            }
+        });
+    });
+}
+
+export async function openPopup(url, width, height) {
+    const options = { url };
+    if (!chrome.windows?.create || navigator.userAgent.includes("Android") || navigator.userAgent.includes("iPhone OS")) {
+        options.active = true;
+        return await chrome.tabs.create(options);
+    }
+    options.type = 'popup';
+    options.width = width;
+    options.height = height;
+    return await chrome.windows.create(options);
+}
+
+export function escapeHTML(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[tag] || tag));
 }

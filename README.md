@@ -11,7 +11,12 @@
 * This addon requires a Widevine/PlayReady Device file to work. Don't ask me where to get those.
 
 ## Compatibility
-+ Compatible (tested) browsers: Chrome, Edge, Firefox, Marble, and Supermium on Windows
++ Should be compatible with all modern browsers that supports the standard EME, the ClearKey CDM, and the Manifest V3 extensions
++ Tested browsers: Chrome, Edge, Firefox, Marble, and Supermium on Windows
++ Incompatible browsers:
+  + Tor Browser (does not support ClearKey)
+  + Many mobile browsers, including Firefox (Stable/Nightly), and Kiwi Browser (does not support ClearKey)
+  + Internet Explorer, obviously.
 + Works with any service that accepts challenges from Android devices on the same endpoint.
 + Incompatible services:
   + Netflix (unless a browser/PC device is provided, which is rare)
@@ -55,6 +60,7 @@ All the user has to do is to play a DRM protected video. With everything set up 
 * First, check if the service accepts your device (CDM).
   * For Widevine, use either [WidevineProxy2](https://github.com/DevLARLEY/WidevineProxy2) or [openwv](https://github.com/tchebb/openwv) with the same WVD file.
   * For PlayReady, use [PlayreadyProxy2](https://github.com/DevLARLEY/PlayreadyProxy2/) with the same PRD file.
+  * For ClearKey, just fully disable Vineless and test the playback with the non-intercepted ClearKey handler.
   * Do note that WidevineProxy2 and PlayreadyProxy2 do not support playback, so just test if you can acquire the keys with them. Also, fully disable Vineless before testing those two.
 * If those aren't working as well, this automatically means that the license server is blocking your CDM and that you either need a CDM from a physical device, a ChromeCDM, or an L1 Android CDM. Don't ask where you can get these.
 * If those are working but Vineless isn't working, please report this on the issues page. Please include the DevTools console logs as well, and make sure the verbose/debug logs are enabled.
