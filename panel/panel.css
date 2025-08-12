@@ -4,6 +4,8 @@ body {
     color: black;
     width: 400px;
     overflow-x: hidden;
+    user-select: none;
+    font-size: 13px;
 }
 .toggleButton {
     width: 24px;
@@ -14,6 +16,7 @@ select {
 .text-box {
     outline: none;
     width: 80%;
+    user-select: auto;
 }
 #downloader-name {
     width: 160px;
@@ -23,41 +26,85 @@ select {
 }
 
 
-/* Dark mode */
-.dark-mode {
-    background-color: #1b1b1b;
-    color: #D5D5D5;
-}
-.dark-mode fieldset {
-    border-color: #535353;
-}
-.dark-mode button, .dark-mode select {
-    background-color: #222;
-    color: #D5D5D5;
-}
-.dark-mode button:hover, .dark-mode select:hover {
-    background-color: #323232;
-}
-.dark-mode .expandableDiv {
-    background-color: #1b2027;
-}
-.dark-mode .text-box {
-    background-color: #323232;
-    color: #D5D5D5;
+/* Dark mode — tidy, readable, no weird stretching */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0f1115;    /* page bg */
+    color: #e6e6e6;               /* primary text */
+  }
+
+  fieldset {
+    border-color: #2a2d35;        /* subtle border */
+  }
+
+  /* Buttons & selects */
+  button, select {
+    background-color: #1a1d24;    /* surface */
+    color: #e6e6e6;               /* readable text */
+    border: 1px solid #2a2d35;
+  }
+  button:hover, select:hover {
+    background-color: #222632;    /* hover surface */
+  }
+  button:focus-visible, select:focus-visible, .text-box:focus-visible {
+    outline: 2px solid #3b82f6;   /* focus ring (blue) */
+    outline-offset: 1px;
+  }
+
+  /* Inputs / text boxes */
+  .text-box {
+    background-color: #151820;    /* input bg */
+    color: #e6e6e6;               /* input text */
+    border: 1px solid #2a2d35;
+  }
+
+  /* Expandable area (logs) */
+  .expandableDiv {
+    background-color: #131720;    /* card surface */
+  }
+
+  /* Switch track + knob */
+  .slider { background-color: #3a3f4a; }
+  input:checked + .slider { background-color: #2563eb; } /* active blue */
+  .slider:before { background-color: #f4f6f8; }
+
+  /* Muted text (descriptions, small labels) */
+  .header-right,
+  #version {
+    color: #b3b9c6;
+  }
 }
 
 /* Switch */
+#scopeToggleArea {
+    margin-left: 10px;
+}
 .switch {
     position: relative;
     display: inline-block;
     width: 40px;
     height: 20px;
-    margin-left: 10px;
 }
 .switch input {
     opacity: 0;
     width: 0;
     height: 0;
+}
+#siteScopeLabel {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    direction: rtl;
+    height: 12px;
+}
+
+#reload {
+    margin-left: auto;
+}
+#reload.hidden {
+    visibility: hidden;
 }
 
 /* Slider */
