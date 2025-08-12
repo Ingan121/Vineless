@@ -24,20 +24,22 @@
                 <label for="enabled"> Enabled</label>
             </div>
             <!-- Dark mode -->
-            <div>
+            <div id="scopeToggleArea">
+                <label>Global</label>
                 <label class="switch">
-                    <input type="checkbox" id="darkModeToggle">
+                    <input type="checkbox" id="scopeToggle">
                     <span class="slider"></span>
                 </label>
-                <label for="enabled"> Dark mode</label>
+                <label id="siteScopeLabel">This site</label>
             </div>
+            <button id="reload" class="hidden">Reload tab</button>
         </div>
         <fieldset id="systems">
             <legend>Systems</legend>
             <div class="flex">
                 <input type="checkbox" id="wvEnabled" name="wvEnabled" checked>
                 <label for="wvEnabled">Widevine</label>
-                <input type="radio" id="wvd_select" name="cdm_type" value="wvd" checked>
+                <input type="radio" id="wvd_select" name="cdm_type" value="local" checked>
                 <label for="wvd_select">Local</label>
                 <input type="radio" id="remote_select" name="cdm_type" value="remote">
                 <label for="remote_select">Remote</label>
@@ -45,6 +47,12 @@
             <div>
                 <input type="checkbox" id="prEnabled" name="prEnabled" checked>
                 <label for="prEnabled">PlayReady</label>
+                <input type="checkbox" id="ckEnabled" name="ckEnabled" checked>
+                <label for="ckEnabled">ClearKey</label>
+            </div>
+            <div>
+                <input type="checkbox" id="blockDisabled" name="blockDisabled">
+                <label for="blockDisabled">Block disabled systems</label>
             </div>
         </fieldset>
         <fieldset id="wvd">
