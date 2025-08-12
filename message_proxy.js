@@ -3,6 +3,7 @@ async function processMessage(detail) {
         chrome.runtime.sendMessage({
             type: detail.type,
             body: detail.body,
+            from: "content"
         }, (response) => {
             if (chrome.runtime.lastError) {
                 return reject(chrome.runtime.lastError);
