@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Import Device / Remote CDM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 680px; margin: 48px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 20px; }
+    .row { display: grid; gap: 12px; }
+    .dropzone {
+      border: 2px dashed #bbb; border-radius: 10px; padding: 28px; text-align: center; color: #666;
+    }
+    .dropzone.drag { border-color: #333; color: #333; background: #fafafa; }
+    .muted { color: #666; font-size: 14px; }
+    button { padding: 10px 14px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    input[type="url"], input[type="file"] { width: 100%; }
+    #status { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Import device (.prd / .wvd) or Remote CDM (.json)</h1>
+
+  <div class="card row">
+    <label>
+      <strong>Select a file</strong> <span class="muted">(accepted: .prd, .wvd, .json)</span><br />
+      <input id="fileInput" type="file" accept=".prd,.wvd,.json" multiple />
+    </label>
+
+    <div id="drop" class="dropzone">Drag & drop your .prd / .wvd / .json here</div>
+
+    <div class="row">
+      <p><strong>Or import from a URL</strong></p>
+      <input id="urlInput" type="url" placeholder="https://example.com/device.wvd" />
+      <button id="urlImport">Import</button>
+    </div>
+
+    <div id="status" class="muted"></div>
+  </div>
+
+  <script type="module" src="./filePicker.js"></script>
+</body>
+</html>
