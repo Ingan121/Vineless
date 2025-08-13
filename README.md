@@ -6,6 +6,7 @@
 + User-friendly / GUI-based
 + Supports Widevine and PlayReady-protected content
 + Manifest V3 compliant
++ Per-site configuration
 
 ## Devices
 * This addon requires a Widevine/PlayReady Device file to work. Don't ask me where to get those.
@@ -49,6 +50,7 @@
 + Select the type of device you're using in the top `Systems` section
 + The files are saved in the extension's `chrome.storage.sync` storage and will be synchronized across any browsers into which the user is signed in with their Google account.
 + The maximum number of devices is ~25 Local **OR** ~200 Remote CDMs
++ The maximum number of per-site profiles is ~200 profiles
 + Check `Enabled` to activate the message interception and you're done.
 
 ## Usage

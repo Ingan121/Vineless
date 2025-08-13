@@ -54,6 +54,8 @@ select {
 /* Switch */
 #scopeToggleArea {
     margin-left: 10px;
+    display: flex;
+    gap: 4px;
 }
 .switch {
     position: relative;
@@ -66,14 +68,14 @@ select {
     width: 0;
     height: 0;
 }
-#siteScopeLabel {
+.scopeLabel {
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     display: inline-block;
     direction: rtl;
-    height: 12px;
+    height: 15px;
 }
 
 #reload {
@@ -110,6 +112,10 @@ input:checked + .slider {
 }
 input:checked + .slider:before {
     transform: translateX(20px);
+}
+input:disabled + .slider {
+    opacity: 0.5;
+    cursor: default;
 }
 
 #clear {

@@ -34,6 +34,17 @@ toggle.addEventListener('change', async () => {
 });
 
 const siteScopeLabel = document.getElementById('siteScopeLabel');
+siteScopeLabel.addEventListener('click', function () {
+    const hostOverride = prompt("Enter custom per-site scope name to load (e.g. example.com)");
+    if (hostOverride !== null) {
+        toggle.checked = true;
+        toggle.disabled = true;
+        siteScopeLabel.textContent = hostOverride;
+        siteScopeLabel.dataset.hostOverride = hostOverride;
+        loadConfig(hostOverride);
+        alert("Reopen the panel to remove the override");
+    }
+})
 
 const reloadButton = document.getElementById('reload');
 reloadButton.addEventListener('click', async function () {
@@ -307,7 +318,7 @@ async function loadConfig(scope = "global") {
 }
 
 async function applyConfig() {
-    const scope = toggle.checked ? new URL(currentTab.url).host : "global";
+    const scope = siteScopeLabel.dataset.hostOverride || (toggle.checked ? new URL(currentTab.url).host : "global");
     const config = {
         "enabled": enabled.checked,
         "widevine": {
