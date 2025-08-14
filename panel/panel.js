@@ -15,6 +15,8 @@ import {
 
 const key_container = document.getElementById('key-container');
 const icon = document.getElementById('icon');
+const overlay = document.getElementById('overlay');
+const overlayMessage = document.getElementById('overlayMessage');
 
 let currentTab = null;
 
@@ -369,24 +371,57 @@ async function updateIcon() {
     }
 }
 
+function timeoutPromise(promise, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("timeout")), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
-    currentTab = await getForegroundTab();
-    const host = new URL(currentTab.url).host;
-    if (await SettingsManager.profileExists(host)) {
-        toggle.checked = true;
+    const configs = [
+        {
+            "initDataTypes": ["cenc"],
+            "videoCapabilities": [
+                {"contentType": "video/mp4;codecs=\"avc1.64001f\"", "robustness": ""},
+                {"contentType": "video/mp4;codecs=\"avc1.4D401F\"", "robustness": ""},
+                {"contentType": "video/mp4;codecs=\"avc1.42E01E\"", "robustness": ""}
+            ],
+            "distinctiveIdentifier": "optional",
+            "persistentState": "optional",
+            "sessionTypes": ["temporary"]
+        }
+    ];
+
+    try {
+        // Probe ClearKey support
+        // Tor Browser might return a never-resolving promise on RMKSA so use a timeout
+        await timeoutPromise(navigator.requestMediaKeySystemAccess('org.w3.clearkey', configs), 3000);
+        overlay.style.display = 'none';
+
+        currentTab = await getForegroundTab();
+        const host = new URL(currentTab.url).host;
+        if (await SettingsManager.profileExists(host)) {
+            toggle.checked = true;
+        }
+        if (host) {
+            siteScopeLabel.textContent = host;
+        } else {
+            siteScopeLabel.textContent = "<no origin>";
+            toggle.disabled = true;
+        }
+        use_shaka.checked = await SettingsManager.getUseShakaPackager();
+        downloader_name.value = await SettingsManager.getExecutableName();
+        await DeviceManager.loadSetAllWidevineDevices();
+        await RemoteCDMManager.loadSetAllRemoteCDMs();
+        await PRDeviceManager.loadSetAllPlayreadyDevices();
+        checkLogs();
+        loadConfig(host);
+    } catch {
+        // bail out
+        overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
+        document.body.style.overflow = "hidden";
     }
-    if (host) {
-        siteScopeLabel.textContent = host;
-    } else {
-        siteScopeLabel.textContent = "<no origin>";
-        toggle.disabled = true;
-    }
-    use_shaka.checked = await SettingsManager.getUseShakaPackager();
-    downloader_name.value = await SettingsManager.getExecutableName();
-    await DeviceManager.loadSetAllWidevineDevices();
-    await RemoteCDMManager.loadSetAllRemoteCDMs();
-    await PRDeviceManager.loadSetAllPlayreadyDevices();
-    checkLogs();
-    loadConfig(host);
 });
 // ======================================

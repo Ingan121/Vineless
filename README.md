@@ -14,7 +14,7 @@
 ## Compatibility
 + Should be compatible with all modern browsers that support the standard EME, the ClearKey CDM, and the Manifest V3 extensions
 + Tested browsers
-  + Chrome, Edge, Firefox, Marble, and Supermium on Windows
+  + Chrome, Edge, Brave, Supermium, ungoogle-chromium, Firefox, and Marble on Windows
   + Lemur Browser on Android
 + Incompatible browsers:
   + Tor Browser (does not support ClearKey)
@@ -24,6 +24,7 @@
 + Incompatible services:
   + Netflix (unless a browser/PC device is provided, which is rare)
 + Some services may detect your browser and interfere with PlayReady playback. Try using a user-agent changer extension, or use a Chromium-based browser for PlayReady playback.
++ Firefox-based browsers may fail to play some PlayReady-protected video, with an internal error saying `ChromiumCDMParent::RecvDecodeFailed with status decode error`. This is a problem with the browser's ClearKey handler, and Vineless can do nothing about it. Please use a Chromium-based browser if this error occurs.
 + Incompatible extensions:
   + WidevineProxy2, or anything similar
   + PlayreadyProxy2, or anything similar
