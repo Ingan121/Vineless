@@ -646,7 +646,7 @@
 
                 try {
                     const parsed = JSON.parse(bgResponse);
-                    console.log("[Vineless] Receieved keys from the background script:", parsed, _this);
+                    console.log("[Vineless] Received keys from the background script:", parsed, _this);
                     if (parsed && _this._mediaKeys) {
                         if (!_this._mediaKeys._ckKeys) {
                             const ckAccess = await requestMediaKeySystemAccessUnaltered.call(navigator, 'org.w3.clearkey', [_this._mediaKeys._ckConfig]);

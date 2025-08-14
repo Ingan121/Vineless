@@ -12,11 +12,13 @@
 * This addon requires a Widevine/PlayReady Device file to work. Don't ask me where to get those.
 
 ## Compatibility
-+ Should be compatible with all modern browsers that supports the standard EME, the ClearKey CDM, and the Manifest V3 extensions
-+ Tested browsers: Chrome, Edge, Firefox, Marble, and Supermium on Windows
++ Should be compatible with all modern browsers that support the standard EME, the ClearKey CDM, and the Manifest V3 extensions
++ Tested browsers
+  + Chrome, Edge, Firefox, Marble, and Supermium on Windows
+  + Lemur Browser on Android
 + Incompatible browsers:
   + Tor Browser (does not support ClearKey)
-  + Many mobile browsers, including Firefox (Stable/Nightly), and Kiwi Browser (does not support ClearKey)
+  + Firefox for Android, and its forks, such as Kiwi Browser (does not support ClearKey)
   + Internet Explorer, obviously.
 + Works with any service that accepts challenges from Android devices on the same endpoint.
 + Incompatible services:

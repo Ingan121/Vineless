@@ -375,7 +375,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (await SettingsManager.profileExists(host)) {
         toggle.checked = true;
     }
-    siteScopeLabel.textContent = host;
+    if (host) {
+        siteScopeLabel.textContent = host;
+    } else {
+        siteScopeLabel.textContent = "<no origin>";
+        toggle.disabled = true;
+    }
     use_shaka.checked = await SettingsManager.getUseShakaPackager();
     downloader_name.value = await SettingsManager.getExecutableName();
     await DeviceManager.loadSetAllWidevineDevices();
