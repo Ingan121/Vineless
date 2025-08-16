@@ -1,6 +1,6 @@
-import "../protobuf.min.js";
-import "../license_protocol.js";
-import { Utils } from '../jsplayready/utils.js';
+import "../lib/widevine/protobuf.min.js";
+import "../lib/widevine/license_protocol.js";
+import { Utils } from '../lib/playready/utils.js';
 import {
     AsyncLocalStorage,
     base64toUint8Array,
@@ -36,17 +36,37 @@ toggle.addEventListener('change', async () => {
 });
 
 const siteScopeLabel = document.getElementById('siteScopeLabel');
+const scopeInput = document.getElementById('scopeInput');
 siteScopeLabel.addEventListener('click', function () {
-    const hostOverride = prompt("Enter custom per-site scope name to load (e.g. example.com)");
-    if (hostOverride !== null) {
+    scopeInput.value = siteScopeLabel.dataset.hostOverride || new URL(currentTab.url).host;
+    scopeInput.style.display = 'block';
+    scopeInput.focus();
+});
+scopeInput.addEventListener('keypress', function (event) {
+    if (event.key === "Enter") {
+        const hostOverride = scopeInput.value || new URL(currentTab.url).host;
+        if (!hostOverride) {
+            scopeInput.style.display = 'none';
+            return;
+        }
         toggle.checked = true;
         toggle.disabled = true;
         siteScopeLabel.textContent = hostOverride;
         siteScopeLabel.dataset.hostOverride = hostOverride;
+        scopeInput.style.display = 'none';
         loadConfig(hostOverride);
         alert("Reopen the panel to remove the override");
     }
-})
+});
+scopeInput.addEventListener('keydown', function (event) {
+    if (event.key === "Escape") {
+        scopeInput.style.display = 'none';
+        event.preventDefault();
+    }
+});
+scopeInput.addEventListener('blur', function () {
+    scopeInput.style.display = 'none';
+});
 
 const reloadButton = document.getElementById('reload');
 reloadButton.addEventListener('click', async function () {
@@ -81,6 +101,14 @@ const wvd_select = document.getElementById('wvd_select');
 wvd_select.addEventListener('change', async function () {
     applyConfig();
 });
+wvd_select.addEventListener('click', async function (event) {
+    if (event.shiftKey) {
+        const handlerName = prompt("Enter the name of the custom handler to use");
+        if (handlerName) {
+            applyConfig(handlerName);
+        }
+    }
+});
 
 const remote_select = document.getElementById('remote_select');
 remote_select.addEventListener('change', async function () {
@@ -88,7 +116,7 @@ remote_select.addEventListener('change', async function () {
 });
 
 const export_button = document.getElementById('export');
-export_button.addEventListener('click', async function() {
+export_button.addEventListener('click', async function () {
     const logs = await AsyncLocalStorage.getStorage(null);
     SettingsManager.downloadFile(stringToUint8Array(JSON.stringify(logs)), "logs.json");
 });
@@ -101,7 +129,7 @@ document.getElementById('fileInput').addEventListener('click', () => {
 });
 
 const remove = document.getElementById('remove');
-remove.addEventListener('click', async function() {
+remove.addEventListener('click', async function () {
     await DeviceManager.removeWidevineDevice(wvd_combobox.options[wvd_combobox.selectedIndex]?.text || "");
     wvd_combobox.innerHTML = '';
     await DeviceManager.loadSetAllWidevineDevices();
@@ -109,7 +137,7 @@ remove.addEventListener('click', async function() {
 });
 
 const download = document.getElementById('download');
-download.addEventListener('click', async function() {
+download.addEventListener('click', async function () {
     const widevine_device = wvd_combobox.options[wvd_combobox.selectedIndex]?.text;
     SettingsManager.downloadFile(
         base64toUint8Array(await DeviceManager.loadWidevineDevice(widevine_device)),
@@ -118,7 +146,7 @@ download.addEventListener('click', async function() {
 });
 
 const wvd_combobox = document.getElementById('wvd-combobox');
-wvd_combobox.addEventListener('change', async function() {
+wvd_combobox.addEventListener('change', async function () {
     applyConfig();
 });
 // =================================================
@@ -208,6 +236,19 @@ async function createCommand(json, key_string) {
     return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${await SettingsManager.getUseShakaPackager() ? "--use-shaka-packager " : ""}-M format=mkv`;
 }
 
+function getFriendlyType(type) {
+    switch (type) {
+        case "CLEARKEY":
+            return "ClearKey";
+        case "WIDEVINE":
+            return "Widevine";
+        case "PLAYREADY":
+            return "PlayReady";
+        default:
+            return type;
+    }
+}
+
 async function appendLog(result) {
     const key_string = result.keys.map(key => `--key ${key.kid}:${key.k}`).join(' ');
     const date = new Date(result.timestamp * 1000);
@@ -215,6 +256,7 @@ async function appendLog(result) {
 
     const logContainer = document.createElement('div');
     logContainer.classList.add('log-container');
+
     logContainer.innerHTML = `
         <button class="toggleButton">+</button>
         <div class="expandableDiv collapsed">
@@ -222,7 +264,7 @@ async function appendLog(result) {
                 URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}">
             </label>
             <label class="expanded-only right-bound">
-                Type:<input type="text" class="text-box" value="${result.type}">
+                Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}">
             </label>
             <label class="expanded-only right-bound">
             <label class="expanded-only right-bound">
@@ -319,7 +361,7 @@ async function loadConfig(scope = "global") {
     updateIcon();
 }
 
-async function applyConfig() {
+async function applyConfig(customHandler) {
     const scope = siteScopeLabel.dataset.hostOverride || (toggle.checked ? new URL(currentTab.url).host : "global");
     const config = {
         "enabled": enabled.checked,
@@ -343,6 +385,10 @@ async function applyConfig() {
         },
         "blockDisabled": blockDisabled.checked
     };
+    if (customHandler) {
+        config.widevine.device.custom = customHandler;
+        config.widevine.type = "custom";
+    }
     await SettingsManager.setProfile(scope, config);
     // If Vineless is globally disabled, per-site enabled config is completely ignored
     // Enable both global and per-site when switching the per-site one to enabled, if global was disabled
@@ -402,11 +448,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         currentTab = await getForegroundTab();
         const host = new URL(currentTab.url).host;
-        if (await SettingsManager.profileExists(host)) {
-            toggle.checked = true;
-        }
         if (host) {
             siteScopeLabel.textContent = host;
+            if (await SettingsManager.profileExists(host)) {
+                toggle.checked = true;
+            }
         } else {
             siteScopeLabel.textContent = "<no origin>";
             toggle.disabled = true;
@@ -418,10 +464,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         await PRDeviceManager.loadSetAllPlayreadyDevices();
         checkLogs();
         loadConfig(host);
-    } catch {
+    } catch (e) {
         // bail out
-        overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
-        document.body.style.overflow = "hidden";
+        if (e.name === "NotSupportedError") {            
+            overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
+            document.body.style.overflow = "hidden";
+        } else {
+            alert("An unknown error occurred while loading the panel!");
+            console.error(e);
+        }
     }
 });
 // ======================================

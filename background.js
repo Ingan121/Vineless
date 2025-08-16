@@ -1,32 +1,24 @@
-import "./protobuf.min.js";
-import "./license_protocol.js";
-import "./forge.min.js";
+import "./lib/forge.min.js";
+import "./lib/widevine/protobuf.min.js";
+import "./lib/widevine/license_protocol.js";
 
-import { Session } from "./license.js";
 import {
-    DeviceManager,
     base64toUint8Array,
-    uint8ArrayToBase64,
     uint8ArrayToHex,
-    getWvPsshFromConcatPssh,
     setIcon,
     setBadgeText,
     openPopup,
     SettingsManager,
     ScriptManager,
     AsyncLocalStorage,
-    RemoteCDMManager,
-    PRDeviceManager
 } from "./util.js";
-import { WidevineDevice } from "./device.js";
-import { RemoteCdm } from "./remote_cdm.js";
 
-const { LicenseType, SignedMessage, LicenseRequest, License } = protobuf.roots.default.license_protocol;
-
-import { Cdm } from './jsplayready/cdm.js';
-import { Device } from "./jsplayready/device.js";
-import { Utils } from "./jsplayready/utils.js";
-import { utils } from "./jsplayready/noble-curves.min.js";
+import {
+    WidevineLocal,
+    WidevineRemote
+} from "./lib/widevine/main.js";
+import { PlayReadyLocal } from "./lib/playready/main.js";
+import { customHandlers } from "./lib/customhandlers/main.js";
 
 let manifests = new Map();
 let requests = new Map();
@@ -58,7 +50,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
     ['requestHeaders', chrome.webRequest.OnSendHeadersOptions.EXTRA_HEADERS].filter(Boolean)
 );
 
-async function parseClearKey(body, sendResponse, tab_url) {
+async function parseClearKey(body) {
     const clearkey = JSON.parse(atob(body));
 
     const formatted_keys = clearkey["keys"].map(key => ({
@@ -68,270 +60,18 @@ async function parseClearKey(body, sendResponse, tab_url) {
     }));
     const pssh_data = btoa(JSON.stringify({kids: clearkey["keys"].map(key => key.k)}));
 
-    console.log("[Vineless]", "CLEARKEY KEYS", formatted_keys, tab_url);
     const log = {
         type: "CLEARKEY",
         pssh_data: pssh_data,
         keys: formatted_keys,
-        url: tab_url,
-        timestamp: Math.floor(Date.now() / 1000),
-        manifests: manifests.has(tab_url) ? manifests.get(tab_url) : []
-    }
-    logs.push(log);
-
-    await AsyncLocalStorage.setStorage({[pssh_data]: log});
-    sendResponse(JSON.stringify({pssh: pssh_data, keys : formatted_keys}));
-}
-
-async function generateChallenge(host, body, sendResponse, serverCert) {
-    const pssh_data = getWvPsshFromConcatPssh(body);
-
-    if (!pssh_data) {
-        console.log("[Vineless]", "NO_PSSH_DATA_IN_CHALLENGE");
-        sendResponse(body);
-        return;
+        timestamp: Math.floor(Date.now() / 1000)
     }
 
-    const selected_device_name = await DeviceManager.getSelectedWidevineDevice(host);
-    if (!selected_device_name) {
-        sendResponse(body);
-        return;
+    return {
+        pssh: pssh_data,
+        log: log,
+        sessionKey: null
     }
-
-    const device_b64 = await DeviceManager.loadWidevineDevice(selected_device_name);
-    const widevine_device = new WidevineDevice(base64toUint8Array(device_b64).buffer);
-
-    const private_key = `-----BEGIN RSA PRIVATE KEY-----${uint8ArrayToBase64(widevine_device.private_key)}-----END RSA PRIVATE KEY-----`;
-    const session = new Session(
-        {
-            privateKey: private_key,
-            identifierBlob: widevine_device.client_id_bytes
-        },
-        pssh_data
-    );
-
-    if (serverCert) {
-        session.setServiceCertificate(base64toUint8Array(serverCert));
-    }
-
-    const [challenge, request_id] = session.createLicenseRequest(LicenseType.STREAMING, widevine_device.type === 2);
-    sessions.set(uint8ArrayToBase64(request_id), session);
-
-    sendResponse(uint8ArrayToBase64(challenge));
-}
-
-async function parseLicense(host, body, sendResponse, tab_url) {
-    const license = base64toUint8Array(body);
-    const signed_license_message = SignedMessage.decode(license);
-
-    if (signed_license_message.type !== SignedMessage.MessageType.LICENSE) {
-        console.log("[Vineless]", "INVALID_MESSAGE_TYPE", signed_license_message.type.toString());
-        sendResponse(body);
-        return;
-    }
-
-    const license_obj = License.decode(signed_license_message.msg);
-    const loaded_request_id = uint8ArrayToBase64(license_obj.id.requestId);
-
-    if (!sessions.has(loaded_request_id)) {
-        sendResponse(body);
-        return;
-    }
-
-    const loadedSession = sessions.get(loaded_request_id);
-    const keys = await loadedSession.parseLicense(license);
-    const pssh = loadedSession.getPSSH();
-
-    console.log("[Vineless]", "KEYS", JSON.stringify(keys), tab_url);
-    const log = {
-        type: "WIDEVINE",
-        pssh_data: pssh,
-        keys: keys,
-        url: tab_url,
-        timestamp: Math.floor(Date.now() / 1000),
-        manifests: manifests.has(tab_url) ? manifests.get(tab_url) : []
-    }
-    logs.push(log);
-    await AsyncLocalStorage.setStorage({[pssh]: log});
-
-    sessions.delete(loaded_request_id);
-    sendResponse(JSON.stringify({pssh, keys}));
-}
-
-async function generateChallengeRemote(host, body, sendResponse) {
-    const pssh_data = getWvPsshFromConcatPssh(body);
-
-    if (!pssh_data) {
-        console.log("[Vineless]", "NO_PSSH_DATA_IN_CHALLENGE");
-        sendResponse(body);
-        return;
-    }
-
-    const selected_remote_cdm_name = await RemoteCDMManager.getSelectedRemoteCDM(host);
-    if (!selected_remote_cdm_name) {
-        sendResponse(body);
-        return;
-    }
-
-    const selected_remote_cdm = JSON.parse(await RemoteCDMManager.loadRemoteCDM(selected_remote_cdm_name));
-    const remote_cdm = RemoteCdm.from_object(selected_remote_cdm);
-
-    const session_id = await remote_cdm.open();
-    const challenge_b64 = await remote_cdm.get_license_challenge(session_id, pssh_data, true);
-
-    const signed_challenge_message = SignedMessage.decode(base64toUint8Array(challenge_b64));
-    const challenge_message = LicenseRequest.decode(signed_challenge_message.msg);
-
-    sessions.set(uint8ArrayToBase64(challenge_message.contentId.widevinePsshData.requestId), {
-        id: session_id,
-        pssh: pssh_data
-    });
-    sendResponse(challenge_b64);
-}
-
-async function parseLicenseRemote(host, body, sendResponse, tab_url) {
-    const license = base64toUint8Array(body);
-    const signed_license_message = SignedMessage.decode(license);
-
-    if (signed_license_message.type !== SignedMessage.MessageType.LICENSE) {
-        console.log("[Vineless]", "INVALID_MESSAGE_TYPE", signed_license_message.type.toString());
-        sendResponse();
-        return;
-    }
-
-    const license_obj = License.decode(signed_license_message.msg);
-    const loaded_request_id = uint8ArrayToBase64(license_obj.id.requestId);
-
-    if (!sessions.has(loaded_request_id)) {
-        sendResponse(body);
-        return;
-    }
-
-    const session_id = sessions.get(loaded_request_id);
-
-    const selected_remote_cdm_name = await RemoteCDMManager.getSelectedRemoteCDM(host);
-    if (!selected_remote_cdm_name) {
-        sendResponse(body);
-        return;
-    }
-
-    const selected_remote_cdm = JSON.parse(await RemoteCDMManager.loadRemoteCDM(selected_remote_cdm_name));
-    const remote_cdm = RemoteCdm.from_object(selected_remote_cdm);
-
-    await remote_cdm.parse_license(session_id.id, body);
-    const returned_keys = await remote_cdm.get_keys(session_id.id, "CONTENT");
-    await remote_cdm.close(session_id.id);
-
-    if (returned_keys.length === 0) {
-        sendResponse(body);
-        return;
-    }
-
-    const keys = returned_keys.map(({ key, key_id }) => ({ k: key, kid: key_id }));
-
-    console.log("[Vineless]", "KEYS", JSON.stringify(keys), tab_url);
-    const log = {
-        type: "WIDEVINE",
-        pssh_data: session_id.pssh,
-        keys: keys,
-        url: tab_url,
-        timestamp: Math.floor(Date.now() / 1000),
-        manifests: manifests.has(tab_url) ? manifests.get(tab_url) : []
-    }
-    logs.push(log);
-    await AsyncLocalStorage.setStorage({[session_id.pssh]: log});
-
-    sessions.delete(loaded_request_id);
-    sendResponse(JSON.stringify({pssh: session_id.pssh, keys}));
-}
-
-async function generatePRChallenge(host, body, sendResponse, sessionId) {
-    const selected_device_name = await PRDeviceManager.getSelectedPlayreadyDevice(host);
-    if (!selected_device_name) {
-        sendResponse(body);
-        return;
-    }
-
-    const device_b64 = await PRDeviceManager.loadPlayreadyDevice(selected_device_name);
-    const playready_device = new Device(Utils.base64ToBytes(device_b64));
-    const cdm = Cdm.fromDevice(playready_device);
-
-    const challengeData = base64toUint8Array(body);
-    const challenge = new TextDecoder("utf-16le").decode(challengeData);
-
-    /*
-    * arbitrary data could be formatted in a special way and parsing it with the spec-compliant xmldom could remove
-    * required end tags (e.g. '</KID>')
-    * */
-    const wrmHeader = challenge.match(/<WRMHEADER.*?WRMHEADER>/gm)[0];
-    const version = "10.0.16384.10011";
-
-    const licenseChallenge = cdm.getLicenseChallenge(wrmHeader, "", version);
-    const newChallenge = btoa(licenseChallenge);
-    console.log("[Vineless]", "REPLACING", challenge, licenseChallenge, sessionId);
-
-    const newXmlDoc = `<PlayReadyKeyMessage type="LicenseAcquisition">
-        <LicenseAcquisition Version="1">
-            <Challenge encoding="base64encoded">${newChallenge}</Challenge>
-            <HttpHeaders>
-                <HttpHeader>
-                    <name>Content-Type</name>
-                    <value>text/xml; charset=utf-8</value>
-                </HttpHeader>
-                <HttpHeader>
-                    <name>SOAPAction</name>
-                    <value>"http://schemas.microsoft.com/DRM/2007/03/protocols/AcquireLicense"</value>
-                </HttpHeader>
-            </HttpHeaders>
-        </LicenseAcquisition>
-    </PlayReadyKeyMessage>`.replace(/  |\n/g, '');
-
-    const utf8KeyMessage = new TextEncoder().encode(newXmlDoc);
-    const newKeyMessage = new Uint8Array(utf8KeyMessage.length * 2);
-
-    for (let i = 0; i < utf8KeyMessage.length; i++) {
-        newKeyMessage[i * 2] = utf8KeyMessage[i];
-        newKeyMessage[i * 2 + 1] = 0;
-    }
-
-    sessions.set(sessionId, wrmHeader);
-    sendResponse(uint8ArrayToBase64(newKeyMessage));
-}
-
-async function parsePRLicense(host, decodedLicense, sendResponse, sessionId, tab_url) {
-    if (!sessions.has(sessionId)) {
-        sendResponse(btoa(decodedLicense));
-        return;
-    }
-
-    const selected_device_name = await PRDeviceManager.getSelectedPlayreadyDevice(host);
-    if (!selected_device_name) {
-        sendResponse(btoa(decodedLicense));
-        return;
-    }
-
-    const device_b64 = await PRDeviceManager.loadPlayreadyDevice(selected_device_name);
-    const playready_device = new Device(Utils.base64ToBytes(device_b64));
-    const cdm = Cdm.fromDevice(playready_device);
-
-    const returned_keys = cdm.parseLicense(decodedLicense);
-    const keys = returned_keys.map(key => ({ k: utils.bytesToHex(key.key), kid: utils.bytesToHex(key.key_id) }));
-
-    const wrmHeader = sessions.get(sessionId);
-    console.log("[Vineless]", "KEYS", JSON.stringify(keys), sessionId);
-
-    const log = {
-        type: "PLAYREADY",
-        wrm_header: wrmHeader,
-        keys: keys,
-        url: tab_url,
-        timestamp: Math.floor(Date.now() / 1000),
-        manifests: manifests.has(tab_url) ? manifests.get(tab_url) : []
-    }
-    logs.push(log);
-    await AsyncLocalStorage.setStorage({[wrmHeader]: log});
-
-    sendResponse(JSON.stringify({pssh: wrmHeader, keys}));
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -361,95 +101,113 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     setBadgeText("CK", sender.tab.id);
                     sendResponse();
                     return;
-                }
-
-                try {
-                    JSON.parse(atob(message.body));
-                    setBadgeText("CK", sender.tab.id);
-                    sendResponse(message.body);
-                    return;
-                } catch {
-                    if (message.body) {
-                        const split = message.body.split(":");
-                        if (message.body.startsWith("lookup:")) {
-                            const [ _, sessionId, kidHex, serverCert ] = split;
-                            // Find first log that contains the requested KID
-                            const log = logs.find(log =>
-                                log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
-                            );
-                            if (!log) {
-                                console.warn("[Vineless] Lookup failed: no log found for KID", kidHex);
-                                sendResponse();
-                                return;
-                            }
-                            switch (log.type) {
-                                case "CLEARKEY": // UNTESTED
-                                    const json = JSON.stringify({
-                                        kids: log.keys.map(key => key.kid),
-                                        type: "temporary"
-                                    });
-                                    setBadgeText("CK", sender.tab.id);
-                                    sendResponse(btoa(json));
-                                    break;
-                                case "WIDEVINE":
-                                    setBadgeText("WV", sender.tab.id);
-                                    const device_type = profileConfig.widevine.type;
-                                    switch (device_type) {
-                                        case "local":
-                                            await generateChallenge(host, log.pssh_data, sendResponse, serverCert);
-                                            break;
-                                        case "remote":
-                                            await generateChallengeRemote(host, log.pssh_data, sendResponse);
-                                            break;
-                                    }
-                                    break;
-                                case "PLAYREADY": // UNTESTED
-                                    setBadgeText("PR", sender.tab.id);
-                                    await generatePRChallenge(host, log.pssh_data, sendResponse, sessionId);
-                                    break;
-                            }
-                        } else if (message.body.startsWith("pr:")) {
-                            if (!profileConfig.playready.enabled) {
-                                sendResponse();
-                                manifests.clear();
-                                return;
-                            }
-                            setBadgeText("PR", sender.tab.id);
-                            const [ _, sessionId, wrmHeader ] = split;
-                            await generatePRChallenge(host, wrmHeader, sendResponse, sessionId);
-                        } else {
-                            if (!profileConfig.widevine.enabled) {
-                                sendResponse();
-                                manifests.clear();
-                                return;
-                            }
-                            setBadgeText("WV", sender.tab.id);
-                            const [ pssh, serverCert ] = split;
-                            const device_type = profileConfig.widevine.type;
-                            switch (device_type) {
-                                case "local":
-                                    await generateChallenge(host, pssh, sendResponse, serverCert);
-                                    break;
-                                case "remote":
-                                    await generateChallengeRemote(host, pssh, sendResponse); // No serverCert support for remote yet
-                                    break;
-                            }
+                } else {
+                    const split = message.body.split(":");
+                    let device = null;
+                    let pssh = null;
+                    const extra = {};
+                    if (message.body.startsWith("lookup:")) {
+                        const [ _, sessionId, kidHex, serverCert ] = split;
+                        // Find first log that contains the requested KID
+                        const log = logs.find(log =>
+                            log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
+                        );
+                        if (!log) {
+                            console.warn("[Vineless] Lookup failed: no log found for KID", kidHex);
+                            sendResponse();
+                            return;
                         }
+                        pssh = log.pssh_data;
+                        switch (log.type) {
+                            case "CLEARKEY": // UNTESTED
+                                const json = JSON.stringify({
+                                    kids: log.keys.map(key => key.kid),
+                                    type: "temporary"
+                                });
+                                setBadgeText("CK", sender.tab.id);
+                                sendResponse(btoa(json));
+                                break;
+                            case "WIDEVINE":
+                                setBadgeText("WV", sender.tab.id);
+                                const device_type = profileConfig.widevine.type;
+                                switch (device_type) {
+                                    case "local":
+                                        device = new WidevineLocal(host, sessions);
+                                        extra.serverCert = serverCert;
+                                        break;
+                                    case "remote":
+                                        device = new WidevineRemote(host, sessions);
+                                        break;
+                                }
+                                break;
+                            case "PLAYREADY": // UNTESTED
+                                setBadgeText("PR", sender.tab.id);
+                                device = new PlayReadyLocal(host, sessions);
+                                extra.sessionId = sessionId;
+                                break;
+                        }
+                    } else if (message.body.startsWith("pr:")) {
+                        if (!profileConfig.playready.enabled) {
+                            sendResponse();
+                            manifests.clear();
+                            return;
+                        }
+                        setBadgeText("PR", sender.tab.id);
+                        [ extra.sessionId, pssh ] = split.slice(1);
+                        device = new PlayReadyLocal(host, sessions);
+                    } else {
+                        if (!profileConfig.widevine.enabled) {
+                            sendResponse();
+                            manifests.clear();
+                            return;
+                        }
+                        setBadgeText("WV", sender.tab.id);
+                        [ pssh, extra.serverCert ] = split;
+                        const device_type = profileConfig.widevine.type;
+                        switch (device_type) {
+                            case "local":
+                                device = new WidevineLocal(host, sessions);
+                                break;
+                            case "remote":
+                                device = new WidevineRemote(host, sessions);
+                                break;
+                            case "custom":
+                                device = new customHandlers[profileConfig.widevine.device.custom](host, sessions);
+                                break;
+                        }
+                    }
+
+                    if (device) {
+                        const res = await device.generateChallenge(pssh, extra);
+                        if (res?.sessionKey) {
+                            sessions.set(res.sessionKey, res.sessionValue);
+                        }
+                        if (res?.challenge) {
+                            console.log("[Vineless] Generated license challenge:", res.challenge);
+                            sendResponse(res.challenge);
+                        } else {
+                            sendResponse();
+                        }
+                    } else {
+                        sendResponse();
                     }
                 }
                 break;
 
             case "RESPONSE":
                 if (!profileConfig.enabled) {
-                    sendResponse(message.body);
+                    sendResponse();
                     manifests.clear();
                     return;
                 }
 
+                let res = null;
                 try {
-                    await parseClearKey(message.body, sendResponse, tab_url);
-                    return;
+                    res = await parseClearKey(message.body);
                 } catch (e) {
+                    let device = null;
+                    let license = null;
+                    const extra = {};
                     if (message.body.startsWith("pr:")) {
                         if (!profileConfig.playready.enabled) {
                             sendResponse();
@@ -457,26 +215,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             return;
                         }
                         const split = message.body.split(':');
-                        const decodedLicense = atob(split[2]);
-                        await parsePRLicense(host, decodedLicense, sendResponse, split[1], tab_url);
+                        device = new PlayReadyLocal(host, sessions);
+                        license = atob(split[2]);
+                        extra.sessionId = split[1];
                     } else {
-                            if (!profileConfig.widevine.enabled) {
-                                sendResponse();
-                                manifests.clear();
-                                return;
-                            }
-                            const device_type = profileConfig.widevine.type;
-                            switch (device_type) {
-                                case "local":
-                                    await parseLicense(host, message.body, sendResponse, tab_url);
-                                    break;
-                                case "remote":
-                                    await parseLicenseRemote(host, message.body, sendResponse, tab_url);
-                                    break;
-                            }
+                        if (!profileConfig.widevine.enabled) {
+                            sendResponse();
+                            manifests.clear();
+                            return;
+                        }
+                        const device_type = profileConfig.widevine.type;
+                        license = message.body;
+                        switch (device_type) {
+                            case "local":
+                                device = new WidevineLocal(host, sessions);
+                                break;
+                            case "remote":
+                                device = new WidevineRemote(host, sessions);
+                                break;
+                            case "custom":
+                                device = new customHandlers[profileConfig.widevine.device.custom](host, sessions);
+                                break;
+                        }
                     }
-                    return;
+
+                    if (device) {
+                        res = await device.parseLicense(license, extra);
+                    }
                 }
+
+                if (res) {
+                    if (res.sessionKey) {
+                        sessions.delete(res.sessionKey);
+                    }
+
+                    if (res.log) {
+                        console.log("[Vineless]", "KEYS", JSON.stringify(res.log.keys), tab_url);
+
+                        res.log.url = tab_url;
+                        res.log.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
+
+                        logs.push(res.log);
+                        await AsyncLocalStorage.setStorage({[res.pssh]: res.log});
+
+                        sendResponse(JSON.stringify({
+                            pssh: res.pssh,
+                            keys: res.log.keys
+                        }));
+                    } else {
+                        sendResponse();
+                    }
+                }
+                break;
             case "CLOSE":
                 if (sessionCnt[sender.tab.id]) {
                     if (--sessionCnt[sender.tab.id] === 0) {
@@ -521,15 +311,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
             case "OPEN_PICKER_WVD":
                 if (message.from === "content") return;
-                openPopup('picker/wvd/filePicker.html', 300, 200);
+                openPopup('picker/filePicker.html?type=wvd', 300, 200);
                 break;
             case "OPEN_PICKER_REMOTE":
                 if (message.from === "content") return;
-                openPopup('picker/remote/filePicker.html', 300, 200);
+                openPopup('picker/filePicker.html?type=remote', 300, 200);
                 break;
             case "OPEN_PICKER_PRD":
                 if (message.from === "content") return;
-                openPopup('picker/prd/filePicker.html', 300, 200);
+                openPopup('picker/filePicker.html?type=prd', 300, 200);
                 break;
             case "CLEAR":
                 if (message.from === "content") return;

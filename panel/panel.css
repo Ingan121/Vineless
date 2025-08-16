@@ -76,6 +76,17 @@ select {
     display: inline-block;
     direction: rtl;
     height: 15px;
+    cursor: pointer;
+}
+#siteScopeArea {
+    position: relative;
+}
+#scopeInput {
+    position: absolute;
+    width: 120px;
+    top: 0;
+    left: 0;
+    display: none;
 }
 
 #reload {

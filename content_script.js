@@ -589,14 +589,16 @@
                         if (_this._mediaKeys._emeShim.serverCert) {
                             data += `:${_this._mediaKeys._emeShim.serverCert}`;
                         }
-                        const base64Pssh = await emitAndWaitForResponse("REQUEST", data);
-                        if (!base64Pssh) {
-                            const error = new Error("[Vineless] No PSSH received for WebM request");
+                        const challenge = await emitAndWaitForResponse("REQUEST", data);
+                        if (!challenge) {
+                            const error = new Error("[Vineless] No challenge received for WebM request");
                             console.error(error);
                             throw error;
                         }
+                        const challengeBytes = base64toUint8Array(challenge);
+
                         const evt = new MediaKeyMessageEvent("message", {
-                            message: base64toUint8Array(base64Pssh).buffer,
+                            message: challengeBytes.buffer,
                             messageType: "license-request"
                         });
                         _this.dispatchEvent(evt);
@@ -609,6 +611,11 @@
                         data += `:${_this._mediaKeys._emeShim.serverCert}`;
                     }
                     const challenge = await emitAndWaitForResponse("REQUEST", data);
+                    if (!challenge) {
+                        const error = new Error("[Vineless] No challenge received for CENC request");
+                        console.error(error);
+                        throw error;
+                    }
                     const challengeBytes = base64toUint8Array(challenge);
 
                     const evt = new MediaKeyMessageEvent("message", {

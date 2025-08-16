@@ -14,7 +14,7 @@
 ## Compatibility
 + Should be compatible with all modern browsers that support the standard EME, the ClearKey CDM, and the Manifest V3 extensions
 + Tested browsers
-  + Chrome, Edge, Brave, Supermium, ungoogle-chromium, Firefox, and Marble on Windows
+  + Chrome, Edge, Brave, Supermium, ungoogled-chromium, Firefox, and Marble on Windows
   + Lemur Browser on Android
 + Incompatible browsers:
   + Tor Browser (does not support ClearKey)
@@ -62,7 +62,7 @@ All the user has to do is to play a DRM protected video. With everything set up 
 ## FAQ
 > What if I'm unable to play the video?
 
-* First, check if the service accepts your device (CDM).
+* First, check if the service accepts your device and is working correctly.
   * For Widevine, use either [WidevineProxy2](https://github.com/DevLARLEY/WidevineProxy2) or [openwv](https://github.com/tchebb/openwv) with the same WVD file.
   * For PlayReady, use [PlayreadyProxy2](https://github.com/DevLARLEY/PlayreadyProxy2/) with the same PRD file.
   * For ClearKey, just fully disable Vineless and test the playback with the non-intercepted ClearKey handler.

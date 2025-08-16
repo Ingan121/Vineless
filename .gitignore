@@ -4,3 +4,7 @@
 *.wvd
 *.prd
 devices
+dist
+lib/customhandlers/*.js
+!lib/customhandlers/hardcoded.js
+!lib/customhandlers/main_example.js

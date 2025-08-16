@@ -1,5 +1,5 @@
-import { WidevineDevice } from "./device.js";
-import { RemoteCdm } from "./remote_cdm.js";
+import { WidevineDevice } from "./lib/widevine/device.js";
+import { RemoteCdm } from "./lib/widevine/remote_cdm.js";
 
 export class AsyncSyncStorage {
     static async setStorage(items) {
