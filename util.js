@@ -627,6 +627,7 @@ export async function openPopup(url, width, height) {
     options.type = 'popup';
     options.width = width;
     options.height = height;
+    debugger;
     return await chrome.windows.create(options);
 }
 
