@@ -132,6 +132,9 @@ remove.addEventListener('click', async function () {
 const download = document.getElementById('download');
 download.addEventListener('click', async function () {
     const widevine_device = wvd_combobox.options[wvd_combobox.selectedIndex]?.text;
+    if (!widevine_device) {
+        return;
+    }
     SettingsManager.downloadFile(
         base64toUint8Array(await DeviceManager.loadWidevineDevice(widevine_device)),
         widevine_device + ".wvd"
@@ -208,6 +211,9 @@ prdRemove.addEventListener('click', async function() {
 const prdDownload = document.getElementById('prdDownload');
 prdDownload.addEventListener('click', async function() {
     const playready_device = prd_combobox.options[prd_combobox.selectedIndex]?.text;
+    if (!playready_device) {
+        return;
+    }
     SettingsManager.downloadFile(
         Utils.base64ToBytes(await PRDeviceManager.loadPlayreadyDevice(playready_device)),
         playready_device + ".prd"
