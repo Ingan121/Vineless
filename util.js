@@ -292,7 +292,7 @@ export class CustomHandlerManager {
 
         for (const handler in CustomHandlers) {
             if (CustomHandlers[handler].disabled) {
-                return;
+                continue;
             }
             const option = document.createElement('option');
             option.text = CustomHandlers[handler].name;
