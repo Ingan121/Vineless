@@ -8,8 +8,10 @@
     "tabs",
     "scripting",
     "storage",
+    "notifications",
     "unlimitedStorage",
     "webRequest",
+    "webRequestBlocking",
     "webNavigation"
   ],
   "host_permissions": [

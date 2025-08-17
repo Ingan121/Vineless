@@ -452,13 +452,15 @@
                         };
                     }
                 } else if (origKeySystem && profileConfig.blockDisabled) {
-                    console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
-                    return {
-                        supported: false,
-                        smooth: false,
-                        powerEfficient: false,
-                        keySystemAccess: null
-                    };
+                    if (origKeySystem !== "org.w3.clearkey" || !profileConfig.clearkey.enabled) {
+                        console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
+                        return {
+                            supported: false,
+                            smooth: false,
+                            powerEfficient: false,
+                            keySystemAccess: null
+                        };
+                    }
                 }
 
                 return await _target.apply(_this, _args);

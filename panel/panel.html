@@ -15,7 +15,7 @@
         </div>
         <p id="version">v1.x</p>
     </div>
-    <fieldset>
+    <fieldset id="main" data-wv-type="local" data-pr-type="local">
         <legend>Settings</legend>
         <div id="settings">
             <!-- Enabled -->
@@ -46,10 +46,20 @@
                 <label for="wvd_select">Local</label>
                 <input type="radio" id="remote_select" name="cdm_type" value="remote">
                 <label for="remote_select">Remote</label>
+                <input type="radio" id="custom_select" name="cdm_type" value="remote">
+                <label for="custom_select">Custom</label>
             </div>
             <div>
                 <input type="checkbox" id="prEnabled" name="prEnabled" checked>
                 <label for="prEnabled">PlayReady</label>
+                <input type="radio" id="prd_select" name="pr_cdm_type" value="local" checked>
+                <label for="prd_select">Local</label>
+                <input type="radio" id="pr_remote_select" name="pr_cdm_type" value="remote">
+                <label for="pr_remote_select">Remote</label>
+                <input type="radio" id="pr_custom_select" name="pr_cdm_type" value="remote">
+                <label for="pr_custom_select">Custom</label>
+            </div>
+            <div>
                 <input type="checkbox" id="ckEnabled" name="ckEnabled" checked>
                 <label for="ckEnabled">ClearKey</label>
             </div>
@@ -59,7 +69,7 @@
             </div>
         </fieldset>
         <fieldset id="wvd">
-            <legend>Widevine Device</legend>
+            <legend>Widevine Local</legend>
             <button type="button" id="fileInput">Choose File</button>
             <button type="button" id="remove">Remove</button>
             <button type="button" id="download">Download</button><br>
@@ -68,7 +78,7 @@
             </label>
         </fieldset>
         <fieldset id="remote">
-            <legend>Remote Widevine CDM</legend>
+            <legend>Widevine Remote</legend>
             <button type="button" id="remoteInput">Choose remote.json</button>
             <button type="button" id="remoteRemove">Remove</button>
             <button type="button" id="remoteDownload">Download</button><br>
@@ -76,14 +86,37 @@
                 <select id="remote-combobox"></select>
             </label>
         </fieldset>
+        <fieldset id="custom">
+            <legend>Widevine Custom</legend>
+            <label>
+                <select id="custom-combobox"></select>
+            </label>
+            <p id="custom-desc"></p>
+        </fieldset>
         <fieldset id="prd">
-            <legend>PlayReady Device</legend>
+            <legend>PlayReady Local</legend>
             <button type="button" id="prdInput">Choose File</button>
             <button type="button" id="prdRemove">Remove</button>
             <button type="button" id="prdDownload">Download</button><br>
             <label>
                 <select id="prd-combobox"></select>
             </label>
+        </fieldset>
+        <fieldset id="pr-remote">
+            <legend>PlayReady Remote</legend>
+            <button type="button" id="prRemoteInput">Choose remote.json</button>
+            <button type="button" id="prRemoteRemove">Remove</button>
+            <button type="button" id="prRemoteDownload">Download</button><br>
+            <label>
+                <select id="pr-remote-combobox"></select>
+            </label>
+        </fieldset>
+        <fieldset id="pr-custom">
+            <legend>PlayReady Custom</legend>
+            <label>
+                <select id="pr-custom-combobox"></select>
+            </label>
+            <p id="pr-custom-desc"></p>
         </fieldset>
         <fieldset id="command-options">
             <legend>Command options</legend>

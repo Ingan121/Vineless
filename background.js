@@ -8,6 +8,8 @@ import {
     setIcon,
     setBadgeText,
     openPopup,
+    notifyUser,
+    getWvPsshFromConcatPssh,
     SettingsManager,
     ScriptManager,
     AsyncLocalStorage,
@@ -17,8 +19,11 @@ import {
     WidevineLocal,
     WidevineRemote
 } from "./lib/widevine/main.js";
-import { PlayReadyLocal } from "./lib/playready/main.js";
-import { customHandlers } from "./lib/customhandlers/main.js";
+import {
+    PlayReadyLocal,
+    PlayReadyRemote
+} from "./lib/playready/main.js";
+import { CustomHandlers } from "./lib/customhandlers/main.js";
 
 let manifests = new Map();
 let requests = new Map();
@@ -128,7 +133,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 sendResponse(btoa(json));
                                 break;
                             case "WIDEVINE":
+                            {
                                 setBadgeText("WV", sender.tab.id);
+                                pssh = getWvPsshFromConcatPssh(pssh);
                                 const device_type = profileConfig.widevine.type;
                                 switch (device_type) {
                                     case "local":
@@ -138,13 +145,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                     case "remote":
                                         device = new WidevineRemote(host, sessions);
                                         break;
+                                    case "custom":
+                                        device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
+                                        break;
                                 }
                                 break;
+                            }
                             case "PLAYREADY": // UNTESTED
+                            {
                                 setBadgeText("PR", sender.tab.id);
-                                device = new PlayReadyLocal(host, sessions);
+                                const device_type = profileConfig.playready.type;
+                                switch (device_type) {
+                                    case "local":
+                                        device = new PlayReadyLocal(host, sessions);
+                                        break;
+                                    case "remote":
+                                        device = new PlayReadyRemote(host, sessions);
+                                        break;
+                                    case "custom":
+                                        device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
+                                        break;
+                                }
                                 extra.sessionId = sessionId;
                                 break;
+                            }
                         }
                     } else if (message.body.startsWith("pr:")) {
                         if (!profileConfig.playready.enabled) {
@@ -154,7 +178,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         }
                         setBadgeText("PR", sender.tab.id);
                         [ extra.sessionId, pssh ] = split.slice(1);
-                        device = new PlayReadyLocal(host, sessions);
+                        const device_type = profileConfig.playready.type;
+                        switch (device_type) {
+                            case "local":
+                                device = new PlayReadyLocal(host, sessions);
+                                break;
+                            case "remote":
+                                device = new PlayReadyRemote(host, sessions);
+                                break;
+                            case "custom":
+                                device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
+                                break;
+                        }
                     } else {
                         if (!profileConfig.widevine.enabled) {
                             sendResponse();
@@ -163,6 +198,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         }
                         setBadgeText("WV", sender.tab.id);
                         [ pssh, extra.serverCert ] = split;
+                        pssh = getWvPsshFromConcatPssh(pssh);
                         const device_type = profileConfig.widevine.type;
                         switch (device_type) {
                             case "local":
@@ -172,7 +208,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new WidevineRemote(host, sessions);
                                 break;
                             case "custom":
-                                device = new customHandlers[profileConfig.widevine.device.custom](host, sessions);
+                                device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
                                 break;
                         }
                     }
@@ -215,7 +251,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             return;
                         }
                         const split = message.body.split(':');
-                        device = new PlayReadyLocal(host, sessions);
+                        const device_type = profileConfig.playready.type;
+                        switch (device_type) {
+                            case "local":
+                                device = new PlayReadyLocal(host, sessions);
+                                break;
+                            case "remote":
+                                device = new PlayReadyRemote(host, sessions);
+                                break;
+                            case "custom":
+                                device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
+                                break;
+                        }
                         license = atob(split[2]);
                         extra.sessionId = split[1];
                     } else {
@@ -234,7 +281,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new WidevineRemote(host, sessions);
                                 break;
                             case "custom":
-                                device = new customHandlers[profileConfig.widevine.device.custom](host, sessions);
+                                device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
                                 break;
                         }
                     }
@@ -283,17 +330,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case "GET_PROFILE":
                 let wvEnabled = profileConfig.widevine.enabled;
                 if (wvEnabled) {
-                    if (profileConfig.widevine.type === "remote") {
-                        if (!profileConfig.widevine.device.remote) {
-                            wvEnabled = false;
-                        }
-                    } else if (!profileConfig.widevine.device.local) {
-                        wvEnabled = false;
+                    switch (profileConfig.widevine.type) {
+                        case "local":
+                            if (!profileConfig.widevine.device.local) {
+                                wvEnabled = false;
+                            }
+                            break;
+                        case "remote":
+                            if (!profileConfig.widevine.device.remote) {
+                                wvEnabled = false;
+                            }
+                            break;
                     }
                 }
                 let prEnabled = profileConfig.playready.enabled;
-                if (prEnabled && !profileConfig.playready.device.local) {
-                    prEnabled = false;
+                if (prEnabled) {
+                    switch (profileConfig.playready.type) {
+                        case "local":
+                            if (!profileConfig.playready.device.local) {
+                                prEnabled = false;
+                            }
+                            break;
+                        case "remote":
+                            if (!profileConfig.playready.device.remote) {
+                                prEnabled = false;
+                            }
+                            break;
+                    }
                 }
                 sendResponse(JSON.stringify({
                     enabled: profileConfig.enabled,
@@ -366,4 +429,24 @@ SettingsManager.getGlobalEnabled().then(enabled => {
     } else {
         ScriptManager.registerContentScript();
     }
+});
+
+const isSW = typeof window === "undefined";
+self.addEventListener('error', (event) => {
+    notifyUser(
+        "An unknown error occurred!",
+        (event.message || event.error) +
+        "\nRefer to the extension " +
+        (isSW ? "service worker" : "background script") +
+        " DevTools console for more details."
+    )
+});
+self.addEventListener('unhandledrejection', (event) => {
+    notifyUser(
+        "An unknown error occurred!",
+        (event.reason) +
+        "\nRefer to the extension " +
+        (isSW ? "service worker" : "background script") +
+        " DevTools console for more details."
+    )
 });

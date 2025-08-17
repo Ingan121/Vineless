@@ -9,22 +9,23 @@ import {
     DeviceManager,
     RemoteCDMManager,
     PRDeviceManager,
+    CustomHandlerManager,
     SettingsManager,
     escapeHTML
 } from "../util.js";
 
-const key_container = document.getElementById('key-container');
-const icon = document.getElementById('icon');
+import { CustomHandlers } from "../lib/customhandlers/main.js";
+
 const overlay = document.getElementById('overlay');
 const overlayMessage = document.getElementById('overlayMessage');
+const icon = document.getElementById('icon');
+const main = document.getElementById('main');
+const key_container = document.getElementById('key-container');
 
 let currentTab = null;
 
 // ================ Main ================
 const enabled = document.getElementById('enabled');
-enabled.addEventListener('change', async function (){
-    applyConfig();
-});
 
 const toggle = document.getElementById('scopeToggle');
 toggle.addEventListener('change', async () => {
@@ -78,42 +79,34 @@ const version = document.getElementById('version');
 version.textContent = "v" + chrome.runtime.getManifest().version + " Pre-release";
 
 const wvEnabled = document.getElementById('wvEnabled');
-wvEnabled.addEventListener('change', async function () {
-    applyConfig();
-});
-
 const prEnabled = document.getElementById('prEnabled');
-prEnabled.addEventListener('change', async function () {
-    applyConfig();
-});
-
 const ckEnabled = document.getElementById('ckEnabled');
-ckEnabled.addEventListener('change', async function () {
-    applyConfig();
-});
-
 const blockDisabled = document.getElementById('blockDisabled');
-blockDisabled.addEventListener('change', async function () {
-    applyConfig();
-});
 
 const wvd_select = document.getElementById('wvd_select');
-wvd_select.addEventListener('change', async function () {
-    applyConfig();
-});
-wvd_select.addEventListener('click', async function (event) {
-    if (event.shiftKey) {
-        const handlerName = prompt("Enter the name of the custom handler to use");
-        if (handlerName) {
-            applyConfig(handlerName);
-        }
-    }
-});
-
 const remote_select = document.getElementById('remote_select');
-remote_select.addEventListener('change', async function () {
-    applyConfig();
-});
+const custom_select = document.getElementById('custom_select');
+const prd_select = document.getElementById('prd_select');
+const pr_remote_select = document.getElementById('pr_remote_select');
+const pr_custom_select = document.getElementById('pr_custom_select');
+
+const wvd_combobox = document.getElementById('wvd-combobox');
+const remote_combobox = document.getElementById('remote-combobox');
+const prd_combobox = document.getElementById('prd-combobox');
+const pr_remote_combobox = document.getElementById('pr-remote-combobox');
+
+[
+    enabled,
+    wvEnabled, prEnabled, ckEnabled, blockDisabled,
+    wvd_select, remote_select, custom_select,
+    prd_select, pr_remote_select, pr_custom_select,
+    wvd_combobox, remote_combobox,
+    prd_combobox, pr_remote_combobox,
+].forEach(elem => {
+    elem.addEventListener('change', async function () {
+        applyConfig();
+    });
+})
 
 const export_button = document.getElementById('export');
 export_button.addEventListener('click', async function () {
@@ -144,23 +137,32 @@ download.addEventListener('click', async function () {
         widevine_device + ".wvd"
     )
 });
-
-const wvd_combobox = document.getElementById('wvd-combobox');
-wvd_combobox.addEventListener('change', async function () {
-    applyConfig();
-});
 // =================================================
 
 // ================ Remote CDM ================
-document.getElementById('remoteInput').addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: "OPEN_PICKER_REMOTE" });
-    window.close();
+[
+    document.getElementById('remoteInput'),
+    document.getElementById('prRemoteInput')
+].forEach(elem => {
+    elem.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ type: "OPEN_PICKER_REMOTE" });
+        window.close();
+    });
 });
 
 const remote_remove = document.getElementById('remoteRemove');
 remote_remove.addEventListener('click', async function() {
     await RemoteCDMManager.removeRemoteCDM(remote_combobox.options[remote_combobox.selectedIndex]?.text || "");
     remote_combobox.innerHTML = '';
+    pr_remote_combobox.innerHTML = '';
+    await RemoteCDMManager.loadSetAllRemoteCDMs();
+    applyConfig();
+});
+const pr_remote_remove = document.getElementById('prRemoteRemove');
+pr_remote_remove.addEventListener('click', async function() {
+    await RemoteCDMManager.removeRemoteCDM(pr_remote_combobox.options[pr_custom_combobox.selectedIndex]?.text || "");
+    remote_combobox.innerHTML = '';
+    pr_remote_combobox.innerHTML = '';
     await RemoteCDMManager.loadSetAllRemoteCDMs();
     applyConfig();
 });
@@ -173,10 +175,13 @@ remote_download.addEventListener('click', async function() {
         remote_cdm + ".json"
     )
 });
-
-const remote_combobox = document.getElementById('remote-combobox');
-remote_combobox.addEventListener('change', async function() {
-    applyConfig();
+const pr_remote_download = document.getElementById('prRemoteDownload');
+pr_remote_download.addEventListener('click', async function() {
+    const remote_cdm = pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text;
+    SettingsManager.downloadFile(
+        await RemoteCDMManager.loadRemoteCDM(remote_cdm),
+        remote_cdm + ".json"
+    )
 });
 // ============================================
 
@@ -184,11 +189,6 @@ remote_combobox.addEventListener('change', async function() {
 document.getElementById('prdInput').addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: "OPEN_PICKER_PRD" });
     window.close();
-});
-
-const prd_combobox = document.getElementById('prd-combobox');
-prd_combobox.addEventListener('change', async function() {
-    applyConfig();
 });
 
 const prdRemove = document.getElementById('prdRemove');
@@ -207,7 +207,22 @@ prdDownload.addEventListener('click', async function() {
         playready_device + ".prd"
     )
 });
-// ============================================
+// ==================================================
+
+// ================ Custom Handlers ================
+const custom_combobox = document.getElementById('custom-combobox');
+const custom_desc = document.getElementById('custom-desc');
+const pr_custom_combobox = document.getElementById('pr-custom-combobox');
+const pr_custom_desc = document.getElementById('pr-custom-desc');
+custom_combobox.addEventListener('change', function () {
+    custom_desc.textContent = CustomHandlers[custom_combobox.value].description;
+    applyConfig();
+});
+pr_custom_combobox.addEventListener('change', function () {
+    pr_custom_desc.textContent = CustomHandlers[pr_custom_combobox.value].description;
+    applyConfig();
+});
+// =================================================
 
 // ================ Command Options ================
 const use_shaka = document.getElementById('use-shaka');
@@ -357,38 +372,47 @@ async function loadConfig(scope = "global") {
     SettingsManager.setSelectedDeviceType(profileConfig.widevine.type);
     await DeviceManager.selectWidevineDevice(profileConfig.widevine.device.local);
     await RemoteCDMManager.selectRemoteCDM(profileConfig.widevine.device.remote);
+    CustomHandlerManager.selectCustomHandler(profileConfig.widevine.device.custom);
+    SettingsManager.setSelectedPRDeviceType(profileConfig.playready.type);
     await PRDeviceManager.selectPlayreadyDevice(profileConfig.playready.device.local);
+    await RemoteCDMManager.selectPRRemoteCDM(profileConfig.playready.device.remote);
+    CustomHandlerManager.selectPRCustomHandler(profileConfig.playready.device.custom);
     updateIcon();
+    main.dataset.wvType = profileConfig.widevine.type;
+    main.dataset.prType = profileConfig.playready.type;
 }
 
-async function applyConfig(customHandler) {
+async function applyConfig() {
     const scope = siteScopeLabel.dataset.hostOverride || (toggle.checked ? new URL(currentTab.url).host : "global");
+    const wvType = wvd_select.checked ? "local" : (remote_select.checked ? "remote" : "custom");
+    const prType = prd_select.checked ? "local" : (pr_remote_select.checked ? "remote" : "custom");
     const config = {
         "enabled": enabled.checked,
         "widevine": {
             "enabled": wvEnabled.checked,
             "device": {
                 "local": wvd_combobox.options[wvd_combobox.selectedIndex]?.text || null,
-                "remote": remote_combobox.options[remote_combobox.selectedIndex]?.text || null
+                "remote": remote_combobox.options[remote_combobox.selectedIndex]?.text || null,
+                "custom": custom_combobox.value
             },
-            "type": wvd_select.checked ? "local" : "remote"
+            "type": wvType
         },
         "playready": {
             "enabled": prEnabled.checked,
             "device": {
-                "local": prd_combobox.options[prd_combobox.selectedIndex]?.text || null
+                "local": prd_combobox.options[prd_combobox.selectedIndex]?.text || null,
+                "remote": pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text || null,
+                "custom": pr_custom_combobox.value
             },
-            "type": "local"
+            "type": prType
         },
         "clearkey": {
             "enabled": ckEnabled.checked
         },
         "blockDisabled": blockDisabled.checked
     };
-    if (customHandler) {
-        config.widevine.device.custom = customHandler;
-        config.widevine.type = "custom";
-    }
+    main.dataset.wvType = wvType;
+    main.dataset.prType = prType;
     await SettingsManager.setProfile(scope, config);
     // If Vineless is globally disabled, per-site enabled config is completely ignored
     // Enable both global and per-site when switching the per-site one to enabled, if global was disabled
@@ -459,6 +483,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         use_shaka.checked = await SettingsManager.getUseShakaPackager();
         downloader_name.value = await SettingsManager.getExecutableName();
+        CustomHandlerManager.loadSetAllCustomHandlers();
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();
         await PRDeviceManager.loadSetAllPlayreadyDevices();
@@ -466,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         loadConfig(host);
     } catch (e) {
         // bail out
-        if (e.name === "NotSupportedError") {            
+        if (e.name === "NotSupportedError" || e.name === "TypeError") {
             overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
             document.body.style.overflow = "hidden";
         } else {

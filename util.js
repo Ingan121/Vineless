@@ -1,5 +1,6 @@
 import { WidevineDevice } from "./lib/widevine/device.js";
-import { RemoteCdm } from "./lib/widevine/remote_cdm.js";
+import { RemoteCdm } from "./lib/remote_cdm.js";
+import { CustomHandlers } from "./lib/customhandlers/main.js";
 
 export class AsyncSyncStorage {
     static async setStorage(items) {
@@ -213,14 +214,21 @@ export class RemoteCDMManager {
         return JSON.stringify(result[name] || {});
     }
 
-    static setRemoteCDM(name, value){
+    static setRemoteCDM(name, value) {
         const remote_combobox = document.getElementById('remote-combobox');
+        const pr_remote_combobox = document.getElementById('pr-remote-combobox');
         const remote_element = document.createElement('option');
 
         remote_element.text = name;
         remote_element.value = value;
 
-        remote_combobox.appendChild(remote_element);
+        const parsed = JSON.parse(value);
+        const type = parsed.type || "WIDEVINE";
+        if (type === "PLAYREADY") {
+            pr_remote_combobox.appendChild(remote_element);
+        } else {
+            remote_combobox.appendChild(remote_element);
+        }
     }
 
     static async loadSetAllRemoteCDMs() {
@@ -237,13 +245,28 @@ export class RemoteCDMManager {
         await SettingsManager.setProfile("global", config);
     }
 
+    static async saveGlobalSelectedPRRemoteCDM(name) {
+        const config = await SettingsManager.getProfile("global");
+        config.playready.device.remote = name;
+        await SettingsManager.setProfile("global", config);
+    }
+
     static async getSelectedRemoteCDM(scope) {
         const config = await SettingsManager.getProfile(scope);
         return config.widevine?.device?.remote || "";
     }
 
+    static async getSelectedPRRemoteCDM(scope) {
+        const config = await SettingsManager.getProfile(scope);
+        return config.playready?.device?.remote || "";
+    }
+
     static async selectRemoteCDM(name) {
         document.getElementById('remote-combobox').value = await this.loadRemoteCDM(name);
+    }
+
+    static async selectPRRemoteCDM(name) {
+        document.getElementById('pr-remote-combobox').value = await this.loadRemoteCDM(name);
     }
 
     static async removeRemoteCDM(name) {
@@ -260,6 +283,39 @@ export class RemoteCDMManager {
     }
 }
 
+export class CustomHandlerManager {
+    static loadSetAllCustomHandlers() {
+        const custom_combobox = document.getElementById('custom-combobox');
+        const custom_desc = document.getElementById('custom-desc');
+        const pr_custom_combobox = document.getElementById('pr-custom-combobox');
+        const pr_custom_desc = document.getElementById('pr-custom-desc');
+
+        for (const handler in CustomHandlers) {
+            if (CustomHandlers[handler].disabled) {
+                return;
+            }
+            const option = document.createElement('option');
+            option.text = CustomHandlers[handler].name;
+            option.value = handler;
+            custom_combobox.appendChild(option);
+            pr_custom_combobox.appendChild(option.cloneNode(true));
+        }
+
+        custom_desc.innerHTML = CustomHandlers[custom_combobox.value].description;
+        pr_custom_desc.innerHTML = CustomHandlers[pr_custom_combobox.value].description;
+    }
+
+    static selectCustomHandler(name) {
+        document.getElementById('custom-combobox').value = name;
+        document.getElementById('custom-desc').textContent = CustomHandlers[name]?.description || "";
+    }
+
+    static selectPRCustomHandler(name) {
+        document.getElementById('pr-custom-combobox').value = name;
+        document.getElementById('pr-custom-desc').textContent = CustomHandlers[name]?.description || "";
+    }
+}
+
 export class SettingsManager {
     static async getProfile(scope = "global") {
         const result = await AsyncSyncStorage.getStorage([scope ?? "global"]);
@@ -273,14 +329,17 @@ export class SettingsManager {
                     "enabled": true,
                     "device": {
                         "local": null,
-                        "remote": null
+                        "remote": null,
+                        "custom": "supergeneric"
                     },
                     "type": "local"
                 },
                 "playready": {
                     "enabled": true,
                     "device": {
-                        "local": null
+                        "local": null,
+                        "remote": null,
+                        "custom": "supergeneric"
                     },
                     "type": "local"
                 },
@@ -390,13 +449,14 @@ export class SettingsManager {
 
                 console.log("LOADED DEVICE:", json_file);
                 const remote_cdm = new RemoteCdm(
+                    json_file.type || "WIDEVINE",
                     json_file.device_type,
                     json_file.system_id,
                     json_file.security_level,
                     json_file.host,
                     json_file.secret,
                     json_file.device_name ?? json_file.name,
-
+                    json_file.name_override
                 );
                 const device_name = remote_cdm.get_name();
                 console.log("NAME:", device_name);
@@ -405,7 +465,11 @@ export class SettingsManager {
                     await RemoteCDMManager.saveRemoteCDM(device_name, json_file);
                 }
 
-                await RemoteCDMManager.saveGlobalSelectedRemoteCDM(device_name);
+                if (json_file.type === "PLAYREADY") {
+                    await RemoteCDMManager.saveGlobalSelectedPRRemoteCDM(device_name);
+                } else {
+                    await RemoteCDMManager.saveGlobalSelectedRemoteCDM(device_name);
+                }
                 resolve();
             };
             reader.readAsText(file);
@@ -442,6 +506,25 @@ export class SettingsManager {
                 const remote_select = document.getElementById('remote_select');
                 remote_select.checked = true;
                 break;
+            case "custom":
+                const custom_select = document.getElementById('custom_select');
+                custom_select.checked = true;
+        }
+    }
+
+    static setSelectedPRDeviceType(device_type) {
+        switch (device_type) {
+            case "local":
+                const prd_select = document.getElementById('prd_select');
+                prd_select.checked = true;
+                break;
+            case "remote":
+                const remote_select = document.getElementById('pr_remote_select');
+                remote_select.checked = true;
+                break;
+            case "custom":
+                const custom_select = document.getElementById('pr_custom_select');
+                custom_select.checked = true;
         }
     }
 
@@ -515,6 +598,17 @@ export function uint8ArrayToHex(buffer) {
     return Array.prototype.map.call(buffer, x => x.toString(16).padStart(2, '0')).join('');
 }
 
+export function hexToUint8Array(hex) {
+    if (typeof hex !== 'string' || hex.length % 2 !== 0)
+        throw new Error("Invalid hex string");
+
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return bytes;
+}
+
 export function uint8ArrayToString(uint8array) {
     return String.fromCharCode.apply(null, uint8array)
 }
@@ -533,6 +627,17 @@ export function stringToUint8Array(string) {
 
 export function stringToHex(string){
     return string.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+}
+
+export function flipUUIDByteOrder(u8arr) {
+    const out = new Uint8Array(16);
+    out.set([
+        u8arr[3], u8arr[2], u8arr[1], u8arr[0], // 4 bytes reversed
+        u8arr[5], u8arr[4],                     // 2 bytes reversed
+        u8arr[7], u8arr[6],                     // 2 bytes reversed
+        ...u8arr.slice(8)                       // last 8 bytes unchanged
+    ]);
+    return out;
 }
 
 // Some services send WV+PR concatenated PSSH to generateRequest
@@ -627,7 +732,6 @@ export async function openPopup(url, width, height) {
     options.type = 'popup';
     options.width = width;
     options.height = height;
-    debugger;
     return await chrome.windows.create(options);
 }
 
@@ -640,4 +744,17 @@ export function escapeHTML(str) {
         "'": '&#39;',
         '"': '&quot;'
     }[tag] || tag));
+}
+
+export function notifyUser(title, message) {
+    if (chrome.notifications?.create) {
+        chrome.notifications.create({
+            type: "basic",
+            iconUrl: chrome.runtime.getURL("images/icon.png"),
+            title: title,
+            message: message
+        })
+    } else if (self.alert) {
+        alert(message);
+    }
 }

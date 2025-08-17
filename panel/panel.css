@@ -163,7 +163,31 @@ h1 {
     right: 0;
 }
 
-#wvd > *, #remote > *, #prd > * {
+#wvd, #remote, #custom, #prd, #pr-remote, #pr-custom {
+    display: none;
+}
+
+#main[data-wv-type="local"] #wvd {
+    display: block;
+}
+#main[data-wv-type="remote"] #remote {
+    display: block;
+}
+#main[data-wv-type="custom"] #custom {
+    display: block;
+}
+#main[data-pr-type="local"] #prd {
+    display: block;
+}
+#main[data-pr-type="remote"] #pr-remote {
+    display: block;
+}
+#main[data-pr-type="custom"] #pr-custom {
+    display: block;
+}
+
+#wvd > *, #remote > *, #custom > *,
+#prd > *, #pr-remote > *, #pr-custom > * {
     margin: 5px;
 }
 

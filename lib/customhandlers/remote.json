@@ -1,0 +1,44 @@
+{
+    "type": "WIDEVINE",
+    "device_name": "public",
+    "device_type": "ANDROID",
+    "host": "https://cdrm-project.com/remotecdm/widevine",
+    "security_level": 3,
+    "system_id": 22590,
+    "sg_api_conf": {
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "open": {
+            "url": "/public/open",
+            "resType": "json",
+            "sessionIdResKeyName": "data.session_id"
+        },
+        "close": {
+            "url": "/public/close/%s"
+        },
+        "getLicenseChallenge": {
+            "url": "/public/get_license_challenge/STREAMING",
+            "bodyObj": {
+                "privacy_mode": true
+            },
+            "sessionIdKeyName": "session_id",
+            "psshKeyName": "init_data",
+            "challengeKeyName": "data.challenge_b64"
+        },
+        "parseLicense": {
+            "url": "/public/parse_license",
+            "sessionIdKeyName": "session_id",
+            "licenseKeyName": "license_message"
+        },
+        "getKeys": {
+            "url": "/public/get_keys/CONTENT",
+            "sessionIdKeyName": "session_id",
+            "contentKeysKeyName": "data.keys"
+        },
+        "keyParseRules": {
+            "keyKeyName": "key",
+            "kidKeyName": "key_id"
+        }
+    }
+}
