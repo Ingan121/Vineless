@@ -160,7 +160,7 @@ remote_remove.addEventListener('click', async function() {
 });
 const pr_remote_remove = document.getElementById('prRemoteRemove');
 pr_remote_remove.addEventListener('click', async function() {
-    await RemoteCDMManager.removeRemoteCDM(pr_remote_combobox.options[pr_custom_combobox.selectedIndex]?.text || "");
+    await RemoteCDMManager.removeRemoteCDM(pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text || "");
     remote_combobox.innerHTML = '';
     pr_remote_combobox.innerHTML = '';
     await RemoteCDMManager.loadSetAllRemoteCDMs();
@@ -170,6 +170,9 @@ pr_remote_remove.addEventListener('click', async function() {
 const remote_download = document.getElementById('remoteDownload');
 remote_download.addEventListener('click', async function() {
     const remote_cdm = remote_combobox.options[remote_combobox.selectedIndex]?.text;
+    if (!remote_cdm) {
+        return;
+    }
     SettingsManager.downloadFile(
         await RemoteCDMManager.loadRemoteCDM(remote_cdm),
         remote_cdm + ".json"
@@ -178,6 +181,9 @@ remote_download.addEventListener('click', async function() {
 const pr_remote_download = document.getElementById('prRemoteDownload');
 pr_remote_download.addEventListener('click', async function() {
     const remote_cdm = pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text;
+    if (!remote_cdm) {
+        return;
+    }
     SettingsManager.downloadFile(
         await RemoteCDMManager.loadRemoteCDM(remote_cdm),
         remote_cdm + ".json"
