@@ -285,8 +285,10 @@ export class RemoteCDMManager {
 
 export class CustomHandlerManager {
     static loadSetAllCustomHandlers() {
+        const custom_select = document.getElementById('custom_select');
         const custom_combobox = document.getElementById('custom-combobox');
         const custom_desc = document.getElementById('custom-desc');
+        const pr_custom_select = document.getElementById('pr_custom_select');
         const pr_custom_combobox = document.getElementById('pr-custom-combobox');
         const pr_custom_desc = document.getElementById('pr-custom-desc');
 
@@ -297,12 +299,18 @@ export class CustomHandlerManager {
             const option = document.createElement('option');
             option.text = CustomHandlers[handler].name;
             option.value = handler;
-            custom_combobox.appendChild(option);
-            pr_custom_combobox.appendChild(option.cloneNode(true));
+            if (["widevine", undefined].includes(CustomHandlers[handler].for)) {
+                custom_combobox.appendChild(option);
+                custom_select.hidden = false;
+            }
+            if (["playready", undefined].includes(CustomHandlers[handler].for)) {
+                pr_custom_combobox.appendChild(option.cloneNode(true));
+                pr_custom_select.hidden = false;
+            }
         }
 
-        custom_desc.innerHTML = CustomHandlers[custom_combobox.value].description;
-        pr_custom_desc.innerHTML = CustomHandlers[pr_custom_combobox.value].description;
+        custom_desc.innerHTML = CustomHandlers[custom_combobox.value]?.description || "";
+        pr_custom_desc.innerHTML = CustomHandlers[pr_custom_combobox.value]?.description || "";
     }
 
     static selectCustomHandler(name) {

@@ -503,12 +503,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         loadConfig(host);
     } catch (e) {
         // bail out
+        console.error(e);
         if (e.name === "NotSupportedError" || e.name === "TypeError") {
             overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
             document.body.style.overflow = "hidden";
         } else {
             alert("An unknown error occurred while loading the panel!");
-            console.error(e);
         }
     }
 });

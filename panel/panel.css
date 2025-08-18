@@ -129,6 +129,10 @@ input:disabled + .slider {
     cursor: default;
 }
 
+input[hidden] + label {
+    display: none;
+}
+
 #clear {
     width: 100%;
     margin-bottom: 3px;
