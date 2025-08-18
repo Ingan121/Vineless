@@ -439,7 +439,7 @@ self.addEventListener('error', (event) => {
         "\nRefer to the extension " +
         (isSW ? "service worker" : "background script") +
         " DevTools console for more details."
-    )
+    );
 });
 self.addEventListener('unhandledrejection', (event) => {
     notifyUser(
@@ -448,5 +448,5 @@ self.addEventListener('unhandledrejection', (event) => {
         "\nRefer to the extension " +
         (isSW ? "service worker" : "background script") +
         " DevTools console for more details."
-    )
+    );
 });

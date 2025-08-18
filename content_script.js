@@ -323,6 +323,11 @@
                     const enabled = await getEnabledForKeySystem(origKeySystem);
                     if (!enabled && profileConfig.blockDisabled) {
                         console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
+                        if (origKeySystem.startsWith("com.widevine.alpha") && (navigator.userAgent.includes("Firefox") || typeof InstallTrigger !== 'undefined')) {
+                            // Throw a fake Firefox-specific Widevine error message
+                            throw new DOMException("Widevine EME disabled", "NotSupportedError");
+                        }
+                        // Throw a real error for other cases
                         _args[0] = "com.ingan121.vineless.invalid";
                         await _target.apply(_this, _args); // should throw here
                     }
