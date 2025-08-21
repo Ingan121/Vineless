@@ -257,10 +257,16 @@ clear.addEventListener('click', async function() {
     key_container.innerHTML = "";
 });
 
+async function getCurrentTabTitle() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab.title || "video";
+} // Filename using TAB title
+
 async function createCommand(json, key_string) {
     const metadata = JSON.parse(json);
+    const filename = await getCurrentTabTitle();
     const header_string = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
-    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${await SettingsManager.getUseShakaPackager() ? "--use-shaka-packager " : ""}-M format=mkv`;
+    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${await SettingsManager.getUseShakaPackager() ? "--use-shaka-packager " : ""}--save-name "${filename}" -M format=mkv`;
 }
 
 function getFriendlyType(type) {
