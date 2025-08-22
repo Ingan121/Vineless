@@ -1,10 +1,9 @@
 {
-    "type": "WIDEVINE",
+    "type": "PLAYREADY",
     "device_name": "public",
-    "device_type": "ANDROID",
-    "host": "https://cdrm-project.com/remotecdm/widevine",
-    "security_level": 3,
-    "system_id": 22590,
+    "host": "https://cdrm-project.com/remotecdm/playready",
+    "name_override": "SuperGeneric Sample for CDRM-Project PlayReady",
+    "security_level": 3000,
     "sg_api_conf": {
         "headers": {
             "Content-Type": "application/json"
@@ -17,13 +16,14 @@
             },
             {
                 "method": "POST",
-                "url": "/public/get_license_challenge/STREAMING",
+                "url": "/public/get_license_challenge",
                 "bodyObj": {
                     "privacy_mode": true
                 },
                 "sessionIdKeyName": "session_id",
                 "psshKeyName": "init_data",
-                "challengeKeyName": "data.challenge_b64"
+                "challengeKeyName": "data.challenge",
+                "encodeB64": true
             }
         ],
         "parseLicense": [
@@ -35,7 +35,7 @@
             },
             {
                 "method": "POST",
-                "url": "/public/get_keys/CONTENT",
+                "url": "/public/get_keys",
                 "sessionIdKeyName": "session_id",
                 "contentKeysKeyName": "data.keys"
             },

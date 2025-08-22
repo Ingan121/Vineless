@@ -597,7 +597,7 @@
                             data += `:${_this._mediaKeys._emeShim.serverCert}`;
                         }
                         const challenge = await emitAndWaitForResponse("REQUEST", data);
-                        if (!challenge || challenge === "null") {
+                        if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
                             const error = new Error("[Vineless] No challenge received from the background script (for WebM request)");
                             console.error(error);
                             throw error;
@@ -618,7 +618,7 @@
                         data += `:${_this._mediaKeys._emeShim.serverCert}`;
                     }
                     const challenge = await emitAndWaitForResponse("REQUEST", data);
-                    if (!challenge || challenge === "null") {
+                    if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
                         const error = new Error("[Vineless] No challenge received from the background script");
                         console.error(error);
                         throw error;

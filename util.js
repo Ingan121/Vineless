@@ -214,7 +214,7 @@ export class RemoteCDMManager {
         return JSON.stringify(result[name] || {});
     }
 
-    static setRemoteCDM(name, value) {
+    static setRemoteCDM(name, value, only) {
         const remote_combobox = document.getElementById('remote-combobox');
         const pr_remote_combobox = document.getElementById('pr-remote-combobox');
         const remote_element = document.createElement('option');
@@ -224,6 +224,7 @@ export class RemoteCDMManager {
 
         const parsed = JSON.parse(value);
         const type = parsed.type || "WIDEVINE";
+        if (only && type !== only) return;
         if (type === "PLAYREADY") {
             pr_remote_combobox.appendChild(remote_element);
         } else {
@@ -236,6 +237,22 @@ export class RemoteCDMManager {
         const array = result.remote_cdms || [];
         for (const item of array) {
             this.setRemoteCDM(item, await this.loadRemoteCDM(item));
+        }
+    }
+
+    static async loadSetWVRemoteCDMs() {
+        const result = await AsyncSyncStorage.getStorage(['remote_cdms']);
+        const array = result.remote_cdms || [];
+        for (const item of array) {
+            this.setRemoteCDM(item, await this.loadRemoteCDM(item), "WIDEVINE");
+        }
+    }
+
+    static async loadSetPRRemoteCDMs() {
+        const result = await AsyncSyncStorage.getStorage(['remote_cdms']);
+        const array = result.remote_cdms || [];
+        for (const item of array) {
+            this.setRemoteCDM(item, await this.loadRemoteCDM(item), "PLAYREADY");
         }
     }
 
@@ -456,17 +473,8 @@ export class SettingsManager {
                 }
 
                 console.log("LOADED DEVICE:", json_file);
-                const remote_cdm = new RemoteCdm(
-                    json_file.type || "WIDEVINE",
-                    json_file.device_type,
-                    json_file.system_id,
-                    json_file.security_level,
-                    json_file.host,
-                    json_file.secret,
-                    json_file.device_name ?? json_file.name,
-                    json_file.name_override
-                );
-                const device_name = remote_cdm.get_name();
+                const remote_cdm = new RemoteCdm(json_file);
+                const device_name = remote_cdm.getName();
                 console.log("NAME:", device_name);
 
                 if (await RemoteCDMManager.loadRemoteCDM(device_name) === "{}") {

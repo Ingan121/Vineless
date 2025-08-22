@@ -1,0 +1,8 @@
+{
+    "type": "PLAYREADY",
+    "device_name": "public",
+    "host": "https://cdrm-project.com/remotecdm/playready",
+    "name_override": "CDRM-Project Public PlayReady API",
+    "security_level": "3000",
+    "secret": "CDRM"
+}

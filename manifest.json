@@ -5,6 +5,7 @@
   "description": "Play protected contents without a real CDM",
   "permissions": [
     "activeTab",
+    "clipboardWrite",
     "tabs",
     "scripting",
     "storage",

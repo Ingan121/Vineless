@@ -1,0 +1,10 @@
+{
+    "type": "WIDEVINE",
+    "device_name": "public",
+    "device_type": "ANDROID",
+    "host": "https://cdrm-project.com/remotecdm/widevine",
+    "name_override": "CDRM-Project Public Widevine API",
+    "secret": "CDRM",
+    "security_level": 3,
+    "system_id": 22590
+}

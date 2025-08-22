@@ -15,14 +15,9 @@ import {
     AsyncLocalStorage,
 } from "./util.js";
 
-import {
-    WidevineLocal,
-    WidevineRemote
-} from "./lib/widevine/main.js";
-import {
-    PlayReadyLocal,
-    PlayReadyRemote
-} from "./lib/playready/main.js";
+import { WidevineLocal } from "./lib/widevine/main.js";
+import { PlayReadyLocal } from "./lib/playready/main.js";
+import { GenericRemoteDevice } from "./lib/remote_cdm.js";
 import { CustomHandlers } from "./lib/customhandlers/main.js";
 
 let manifests = new Map();
@@ -110,7 +105,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     const split = message.body.split(":");
                     let device = null;
                     let pssh = null;
-                    const extra = {};
+                    const extra = { tab: sender.tab };
                     if (message.body.startsWith("lookup:")) {
                         const [ _, sessionId, kidHex, serverCert ] = split;
                         // Find first log that contains the requested KID
@@ -143,7 +138,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                         extra.serverCert = serverCert;
                                         break;
                                     case "remote":
-                                        device = new WidevineRemote(host, sessions);
+                                        device = new GenericRemoteDevice(host, sessions);
                                         break;
                                     case "custom":
                                         device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
@@ -160,7 +155,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                         device = new PlayReadyLocal(host, sessions);
                                         break;
                                     case "remote":
-                                        device = new PlayReadyRemote(host, sessions);
+                                        device = new GenericRemoteDevice(host, sessions);
                                         break;
                                     case "custom":
                                         device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
@@ -184,7 +179,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new PlayReadyLocal(host, sessions);
                                 break;
                             case "remote":
-                                device = new PlayReadyRemote(host, sessions);
+                                device = new GenericRemoteDevice(host, sessions);
                                 break;
                             case "custom":
                                 device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
@@ -205,7 +200,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new WidevineLocal(host, sessions);
                                 break;
                             case "remote":
-                                device = new WidevineRemote(host, sessions);
+                                device = new GenericRemoteDevice(host, sessions);
                                 break;
                             case "custom":
                                 device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
@@ -220,6 +215,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         }
                         if (res?.challenge) {
                             console.log("[Vineless] Generated license challenge:", res.challenge);
+                            if (!res.challenge || res.challenge === "null" || res.challenge === "bnVsbA==") {
+                                const isSW = typeof window === "undefined";
+                                notifyUser(
+                                    "Challenge generation failed!",
+                                    "Please refer to the extension " +
+                                    (isSW ? "service worker" : "background page") +
+                                    " DevTools console/network tab for more details."
+                                )
+                            }
                             sendResponse(res.challenge);
                         } else {
                             sendResponse();
@@ -257,7 +261,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new PlayReadyLocal(host, sessions);
                                 break;
                             case "remote":
-                                device = new PlayReadyRemote(host, sessions);
+                                device = new GenericRemoteDevice(host, sessions);
                                 break;
                             case "custom":
                                 device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
@@ -278,7 +282,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new WidevineLocal(host, sessions);
                                 break;
                             case "remote":
-                                device = new WidevineRemote(host, sessions);
+                                device = new GenericRemoteDevice(host, sessions);
                                 break;
                             case "custom":
                                 device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
@@ -301,6 +305,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                         res.log.url = tab_url;
                         res.log.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
+                        res.log.title = sender.tab?.title;
 
                         logs.push(res.log);
                         await AsyncLocalStorage.setStorage({[res.pssh]: res.log});
@@ -324,7 +329,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse();
                 break;
             case "GET_ACTIVE":
-                if (message.from === "content") return;
+                if (message.from === "content" || sender.tab) return;
                 sendResponse(sessionCnt[message.body]);
                 break;
             case "GET_PROFILE":
@@ -373,19 +378,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }));
                 break;
             case "OPEN_PICKER_WVD":
-                if (message.from === "content") return;
+                if (message.from === "content" || sender.tab) return;
                 openPopup('picker/filePicker.html?type=wvd', 300, 200);
                 break;
             case "OPEN_PICKER_REMOTE":
-                if (message.from === "content") return;
+                if (message.from === "content" || sender.tab) return;
                 openPopup('picker/filePicker.html?type=remote', 300, 200);
                 break;
             case "OPEN_PICKER_PRD":
-                if (message.from === "content") return;
+                if (message.from === "content" || sender.tab) return;
                 openPopup('picker/filePicker.html?type=prd', 300, 200);
                 break;
             case "CLEAR":
-                if (message.from === "content") return;
+                if (message.from === "content" || sender.tab) return;
                 logs = [];
                 manifests.clear()
                 break;
@@ -437,7 +442,7 @@ self.addEventListener('error', (event) => {
         "An unknown error occurred!",
         (event.message || event.error) +
         "\nRefer to the extension " +
-        (isSW ? "service worker" : "background script") +
+        (isSW ? "service worker" : "background page") +
         " DevTools console for more details."
     );
 });
@@ -446,7 +451,7 @@ self.addEventListener('unhandledrejection', (event) => {
         "An unknown error occurred!",
         (event.reason) +
         "\nRefer to the extension " +
-        (isSW ? "service worker" : "background script") +
+        (isSW ? "service worker" : "background page") +
         " DevTools console for more details."
     );
 });

@@ -157,16 +157,14 @@ const remote_remove = document.getElementById('remoteRemove');
 remote_remove.addEventListener('click', async function() {
     await RemoteCDMManager.removeRemoteCDM(remote_combobox.options[remote_combobox.selectedIndex]?.text || "");
     remote_combobox.innerHTML = '';
-    pr_remote_combobox.innerHTML = '';
-    await RemoteCDMManager.loadSetAllRemoteCDMs();
+    await RemoteCDMManager.loadSetWVRemoteCDMs();
     applyConfig();
 });
 const pr_remote_remove = document.getElementById('prRemoteRemove');
 pr_remote_remove.addEventListener('click', async function() {
     await RemoteCDMManager.removeRemoteCDM(pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text || "");
-    remote_combobox.innerHTML = '';
     pr_remote_combobox.innerHTML = '';
-    await RemoteCDMManager.loadSetAllRemoteCDMs();
+    await RemoteCDMManager.loadSetPRRemoteCDMs();
     applyConfig();
 });
 
@@ -257,16 +255,10 @@ clear.addEventListener('click', async function() {
     key_container.innerHTML = "";
 });
 
-async function getCurrentTabTitle() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    return tab.title || "video";
-} // Filename using TAB title
-
-async function createCommand(json, key_string) {
+async function createCommand(json, key_string, title) {
     const metadata = JSON.parse(json);
-    const filename = await getCurrentTabTitle();
     const header_string = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
-    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${await SettingsManager.getUseShakaPackager() ? "--use-shaka-packager " : ""}--save-name "${filename}" -M format=mkv`;
+    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${await SettingsManager.getUseShakaPackager() ? "--use-shaka-packager " : ""}${title ? `--save-name "${title}" ` : ""}-M format=mkv`;
 }
 
 function getFriendlyType(type) {
@@ -295,6 +287,9 @@ async function appendLog(result) {
         <div class="expandableDiv collapsed">
             <label class="always-visible right-bound">
                 URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}">
+            </label>
+            <label class="expanded-only right-bound">
+                Title:<input type="text" class="text-box" value="${escapeHTML(result.title || '')}">
             </label>
             <label class="expanded-only right-bound">
                 Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}">
@@ -327,13 +322,13 @@ async function appendLog(result) {
 
         const select = logContainer.querySelector("#manifest");
         select.addEventListener('change', async () => {
-            command.value = await createCommand(select.value, key_string);
+            command.value = await createCommand(select.value, key_string, result.title);
         });
         result.manifests.forEach((manifest) => {
             const option = new Option(`[${manifest.type}] ${manifest.url}`, JSON.stringify(manifest));
             select.add(option);
         });
-        command.value = await createCommand(select.value, key_string);
+        command.value = await createCommand(select.value, key_string, result.title);
 
         const manifest_copy = logContainer.querySelector('.manifest-copy');
         manifest_copy.addEventListener('click', () => {
