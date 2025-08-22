@@ -301,11 +301,11 @@ export class CustomHandlerManager {
             option.value = handler;
             if (["widevine", undefined].includes(CustomHandlers[handler].for)) {
                 custom_combobox.appendChild(option);
-                custom_select.hidden = false;
+                custom_select.classList.remove('hidden');
             }
             if (["playready", undefined].includes(CustomHandlers[handler].for)) {
                 pr_custom_combobox.appendChild(option.cloneNode(true));
-                pr_custom_select.hidden = false;
+                pr_custom_select.classList.remove('hidden');
             }
         }
 

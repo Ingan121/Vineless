@@ -597,8 +597,8 @@
                             data += `:${_this._mediaKeys._emeShim.serverCert}`;
                         }
                         const challenge = await emitAndWaitForResponse("REQUEST", data);
-                        if (!challenge) {
-                            const error = new Error("[Vineless] No challenge received for WebM request");
+                        if (!challenge || challenge === "null") {
+                            const error = new Error("[Vineless] No challenge received from the background script (for WebM request)");
                             console.error(error);
                             throw error;
                         }
@@ -618,8 +618,8 @@
                         data += `:${_this._mediaKeys._emeShim.serverCert}`;
                     }
                     const challenge = await emitAndWaitForResponse("REQUEST", data);
-                    if (!challenge) {
-                        const error = new Error("[Vineless] No challenge received for CENC request");
+                    if (!challenge || challenge === "null") {
+                        const error = new Error("[Vineless] No challenge received from the background script");
                         console.error(error);
                         throw error;
                     }

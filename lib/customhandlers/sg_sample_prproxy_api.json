@@ -1,0 +1,48 @@
+{
+    "type": "PLAYREADY",
+    "security_level": "3000",
+    "host": "http://127.0.0.1:5000",
+    "secret": "Ingan121_80c7b890f55b5755faa12fc005b8b333",
+    "device_name": "NVIDIA",
+    "name_override": "SuperGeneric Sample for PlayReadyProxy-API",
+	"sg_api_conf": {
+        "headers": {
+            "Content-Type": "application/json",
+			"X-API-KEY": "{secret}"
+        },
+        "generateChallenge": [
+            {
+                "method": "GET",
+                "url": "/api/playready/NVIDIA/open",
+                "sessionIdResKeyName": "responseData.session_id"
+            },
+            {
+                "method": "POST",
+                "url": "/api/playready/NVIDIA/get_challenge",
+                "bodyObj": {
+                    "privacy_mode": true
+                },
+                "sessionIdKeyName": "session_id",
+                "psshKeyName": "pssh",
+                "challengeKeyName": "responseData.challenge_b64"
+            }
+        ],
+        "parseLicense": [
+            {
+                "method": "POST",
+                "url": "/api/playready/NVIDIA/get_keys",
+                "sessionIdKeyName": "session_id",
+                "licenseKeyName": "license_b64",
+                "contentKeysKeyName": "responseData.keys"
+            },
+            {
+                "method": "GET",
+                "url": "/api/playready/NVIDIA/close/%s"
+            }
+        ],
+        "keyParseRules": {
+            "keyKeyName": "key",
+            "kidKeyName": "key_id"
+        }
+    }
+}

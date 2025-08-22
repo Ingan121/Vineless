@@ -129,7 +129,8 @@ input:disabled + .slider {
     cursor: default;
 }
 
-input[hidden] + label {
+input.hidden:not(:checked),
+input.hidden:not(:checked) + label {
     display: none;
 }
 

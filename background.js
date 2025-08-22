@@ -263,7 +263,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
                                 break;
                         }
-                        license = atob(split[2]);
+                        license = split[2];
                         extra.sessionId = split[1];
                     } else {
                         if (!profileConfig.widevine.enabled) {
