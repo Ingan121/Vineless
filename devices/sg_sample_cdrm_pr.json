@@ -23,7 +23,8 @@
                 "sessionIdKeyName": "session_id",
                 "psshKeyName": "init_data",
                 "challengeKeyName": "data.challenge",
-                "encodeB64": true
+                "encodeB64": true,
+                "bundleInKeyMessage": true
             }
         ],
         "parseLicense": [

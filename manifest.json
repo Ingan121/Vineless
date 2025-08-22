@@ -34,7 +34,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["<all_urls>", "file://*/*"],
       "js": ["message_proxy.js"],
       "run_at": "document_start",
       "world": "ISOLATED",

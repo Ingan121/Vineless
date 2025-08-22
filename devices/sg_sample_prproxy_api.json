@@ -24,7 +24,8 @@
                 },
                 "sessionIdKeyName": "session_id",
                 "psshKeyName": "pssh",
-                "challengeKeyName": "responseData.challenge_b64"
+                "challengeKeyName": "responseData.challenge_b64",
+                "bundleInKeyMessage": true
             }
         ],
         "parseLicense": [

@@ -577,7 +577,7 @@ export class ScriptManager {
         await chrome.scripting.registerContentScripts([{
             id: this.id,
             js: ['/content_script.js'],
-            matches: ['*://*/*'],
+            matches: ['*://*/*', 'file://*/*'],
             runAt: 'document_start',
             world: 'MAIN',
             allFrames: true,
