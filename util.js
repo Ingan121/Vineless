@@ -355,7 +355,7 @@ export class SettingsManager {
                     "device": {
                         "local": null,
                         "remote": null,
-                        "custom": "supergeneric"
+                        "custom": null
                     },
                     "type": "local"
                 },
@@ -364,7 +364,7 @@ export class SettingsManager {
                     "device": {
                         "local": null,
                         "remote": null,
-                        "custom": "supergeneric"
+                        "custom": null
                     },
                     "type": "local"
                 },
