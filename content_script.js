@@ -363,7 +363,7 @@
                 }
                 const origKeySystem = config?.keySystemConfiguration?.keySystem;
 
-                if (await getEnabledForKeySystem(origKeySystem, false)) {
+                if (await getEnabledForKeySystem(origKeySystem)) {
                     console.log("[Vineless] Intercepted decodingInfo for", origKeySystem);
 
                     try {
@@ -457,15 +457,13 @@
                         };
                     }
                 } else if (origKeySystem && profileConfig.blockDisabled) {
-                    if (origKeySystem !== "org.w3.clearkey" || !profileConfig.clearkey.enabled) {
-                        console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
-                        return {
-                            supported: false,
-                            smooth: false,
-                            powerEfficient: false,
-                            keySystemAccess: null
-                        };
-                    }
+                    console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
+                    return {
+                        supported: false,
+                        smooth: false,
+                        powerEfficient: false,
+                        keySystemAccess: null
+                    };
                 }
 
                 return await _target.apply(_this, _args);
