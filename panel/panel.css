@@ -196,6 +196,10 @@ h1 {
     margin: 5px;
 }
 
+select {
+    width: 100%;
+}
+
 .log-container {
     display: flex;
     justify-content: center;
