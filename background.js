@@ -195,14 +195,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                     if (device) {
                         const res = await device.generateChallenge(pssh, extra);
-                        if (res?.sessionKey) {
-                            sessions.set(res.sessionKey, {
-                                device: device,
-                                value: res.sessionValue
-                            });
-                        }
+                        sessions.set(res.sessionKey, {
+                            device: device,
+                            value: res.sessionValue
+                        });
                         if (res?.challenge) {
-                            console.log("[Vineless] Generated license challenge:", res.challenge);
+                            console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", res.sessionKey);
                             if (!res.challenge || res.challenge === "null" || res.challenge === "bnVsbA==") {
                                 const isSW = typeof window === "undefined";
                                 notifyUser(
@@ -210,7 +208,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                     "Please refer to the extension " +
                                     (isSW ? "service worker" : "background page") +
                                     " DevTools console/network tab for more details."
-                                )
+                                );
                             }
                             sendResponse(res.challenge);
                         } else {
