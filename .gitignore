@@ -1,6 +1,7 @@
 *.zip
 *.xpi
 *.crx
-*.wvd
-*.prd
-dist
+devices/*.wvd
+devices/*.prd
+devices/kx*.json
+dist/

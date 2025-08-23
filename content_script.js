@@ -293,7 +293,7 @@
 
         let profileConfig = null;
 
-        async function getEnabledForKeySystem(keySystem, includeClearKey = true) {
+        async function getEnabledForKeySystem(keySystem) {
             if (!profileConfig) {
                 profileConfig = JSON.parse(await emitAndWaitForResponse("GET_PROFILE"));
             }
@@ -308,7 +308,7 @@
             } else if (keySystem.startsWith("com.microsoft.playready")) {
                 return profileConfig.playready.enabled;
             } else if (keySystem === "org.w3.clearkey") {
-                return profileConfig.clearkey.enabled && includeClearKey;
+                return profileConfig.clearkey.enabled;
             }
             console.error("[Vineless] Unsupported keySystem:", keySystem);
             return false;
