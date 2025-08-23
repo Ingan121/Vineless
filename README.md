@@ -9,7 +9,8 @@
 + Per-site configuration
 
 ## Devices
-* This addon requires a Widevine/PlayReady Device file to work. Don't ask me where to get those.
+* This addon requires a Widevine/PlayReady Device file (`*.wvd`/`*.prd`) to work. Don't ask me where to get those.
+* For remote devices, you can find samples in the `devices` directory. Some of them might require modification to work with your specific use case.
 
 ## Compatibility
 + Should be compatible with all modern browsers that support the standard EME, the ClearKey CDM, and the Manifest V3 extensions

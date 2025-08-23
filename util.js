@@ -84,7 +84,9 @@ export class DeviceManager {
     static async saveWidevineDevice(name, value) {
         const result = await AsyncSyncStorage.getStorage(['devices']);
         const array = result.devices === undefined ? [] : result.devices;
-        array.push(name);
+        if (!array.includes(name)) {
+            array.push(name);
+        }
         await AsyncSyncStorage.setStorage({ devices: array });
         await AsyncSyncStorage.setStorage({ [name]: value });
     }
@@ -145,7 +147,9 @@ export class PRDeviceManager {
     static async savePlayreadyDevice(name, value) {
         const result = await AsyncSyncStorage.getStorage(['prDevices']);
         const array = result.prDevices === undefined ? [] : result.prDevices;
-        array.push(name);
+        if (!array.includes(name)) {
+            array.push(name);
+        }
         await AsyncSyncStorage.setStorage({ prDevices: array });
         await AsyncSyncStorage.setStorage({ [name]: value });
     }
@@ -206,7 +210,9 @@ export class RemoteCDMManager {
     static async saveRemoteCDM(name, obj) {
         const result = await AsyncSyncStorage.getStorage(['remote_cdms']);
         const array = result.remote_cdms === undefined ? [] : result.remote_cdms;
-        array.push(name);
+        if (!array.includes(name)) {
+            array.push(name);
+        }
         await AsyncSyncStorage.setStorage({ remote_cdms: array });
         await AsyncSyncStorage.setStorage({ [name]: obj });
     }
@@ -449,7 +455,9 @@ export class SettingsManager {
                 const b64_device = uint8ArrayToBase64(new Uint8Array(result));
                 const device_name = widevine_device.get_name();
 
-                if (!await DeviceManager.loadWidevineDevice(device_name)) {
+                if (!await DeviceManager.loadWidevineDevice(device_name) ||
+                    (window.resizeTo(800, 600), window.confirm(`Widevine device "${device_name}" already exists. Overwrite?`))
+                ) {
                     await DeviceManager.saveWidevineDevice(device_name, b64_device);
                 }
 
@@ -479,7 +487,9 @@ export class SettingsManager {
                 const device_name = remote_cdm.getName();
                 console.log("NAME:", device_name);
 
-                if (await RemoteCDMManager.loadRemoteCDM(device_name) === "{}") {
+                if (await RemoteCDMManager.loadRemoteCDM(device_name) === "{}" ||
+                    (window.resizeTo(800, 600), window.confirm(`Remote CDM "${device_name}" already exists. Overwrite?`))
+                ) {
                     await RemoteCDMManager.saveRemoteCDM(device_name, json_file);
                 }
 
@@ -503,7 +513,9 @@ export class SettingsManager {
                 const b64_device = uint8ArrayToBase64(new Uint8Array(result));
                 const device_name = file.name.slice(0, -4);
 
-                if (!await PRDeviceManager.loadPlayreadyDevice(device_name)) {
+                if (!await PRDeviceManager.loadPlayreadyDevice(device_name) || 
+                    (window.resizeTo(800, 600), window.confirm(`PlayReady device "${device_name}" already exists. Overwrite?`))
+                ) {
                     await PRDeviceManager.savePlayreadyDevice(device_name, b64_device);
                 }
 

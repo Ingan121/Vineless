@@ -27,6 +27,8 @@ let sessions = new Map();
 let sessionCnt = {};
 let logs = [];
 
+const isSW = typeof window === "undefined";
+
 chrome.webRequest.onBeforeSendHeaders.addListener(
     function(details) {
         if (details.method === "GET") {
@@ -194,27 +196,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
 
                     if (device) {
-                        const res = await device.generateChallenge(pssh, extra);
-                        sessions.set(res.sessionKey, {
-                            device: device,
-                            value: res.sessionValue
-                        });
-                        if (res?.challenge) {
-                            console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", res.sessionKey);
-                            if (!res.challenge || res.challenge === "null" || res.challenge === "bnVsbA==") {
-                                const isSW = typeof window === "undefined";
+                        try {
+                            const res = await device.generateChallenge(pssh, extra);
+                            sessions.set(res.sessionKey, {
+                                device: device,
+                                value: res.sessionValue
+                            });
+                            if (res?.challenge) {
+                                console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", res.sessionKey);
+                                if (res.challenge === "null" || res.challenge === "bnVsbA==") {
+                                    notifyUser(
+                                        "Challenge generation failed!",
+                                        "Please refer to the extension " +
+                                        (isSW ? "service worker" : "background page") +
+                                        " DevTools console/network tab for more details."
+                                    );
+                                }
+                                sendResponse(res.challenge);
+                            } else {
                                 notifyUser(
                                     "Challenge generation failed!",
                                     "Please refer to the extension " +
                                     (isSW ? "service worker" : "background page") +
                                     " DevTools console/network tab for more details."
                                 );
+                                sendResponse();
                             }
-                            sendResponse(res.challenge);
-                        } else {
+                        } catch (error) {
+                            console.error("[Vineless] Challenge generation error:", error);
+                            notifyUser(
+                                "Challenge generation failed!",
+                                error.message +
+                                "\nRefer to the extension " +
+                                (isSW ? "service worker" : "background page") +
+                                " DevTools console for more details."
+                            );
                             sendResponse();
                         }
                     } else {
+                        notifyUser("Challenge generation failed!", "No device handler was selected");
                         sendResponse();
                     }
                 }
@@ -238,8 +258,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (sessionId) {
                         const session = sessions.get(sessionId);
                         if (session) {
-                            res = await session.device.parseLicense(license, session.value);
-                            sessions.delete(sessionId);
+                            try {
+                                res = await session.device.parseLicense(license, session.value);
+                                sessions.delete(sessionId);
+                            } catch (error) {
+                                console.error("[Vineless] License parsing error:", error);
+                                notifyUser(
+                                    "License parsing failed!",
+                                    error.message +
+                                    "\nRefer to the extension " +
+                                    (isSW ? "service worker" : "background page") +
+                                    " DevTools console for more details."
+                                );
+                            }
                         }
                     }
                 }
@@ -260,8 +291,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             keys: res.log.keys
                         }));
                     } else {
+                        notifyUser(
+                            "License parsing failed!",
+                            "Please refer to the extension " +
+                            (isSW ? "service worker" : "background page") +
+                            " DevTools console/network tab for more details."
+                        );
                         sendResponse();
                     }
+                } else {
+                    // Most likely exception thrown in interface.parseLicense, which is already notified
+                    sendResponse();
                 }
                 break;
             case "CLOSE":
@@ -324,15 +364,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
             case "OPEN_PICKER_WVD":
                 if (message.from === "content" || sender.tab) return;
-                openPopup('picker/filePicker.html?type=wvd', 300, 200);
+                openPopup('picker/filePicker.html?type=wvd', 450, 200);
                 break;
             case "OPEN_PICKER_REMOTE":
                 if (message.from === "content" || sender.tab) return;
-                openPopup('picker/filePicker.html?type=remote', 300, 200);
+                openPopup('picker/filePicker.html?type=remote', 450, 200);
                 break;
             case "OPEN_PICKER_PRD":
                 if (message.from === "content" || sender.tab) return;
-                openPopup('picker/filePicker.html?type=prd', 300, 200);
+                openPopup('picker/filePicker.html?type=prd', 450, 200);
                 break;
             case "CLEAR":
                 if (message.from === "content" || sender.tab) return;
@@ -381,7 +421,6 @@ SettingsManager.getGlobalEnabled().then(enabled => {
     }
 });
 
-const isSW = typeof window === "undefined";
 self.addEventListener('error', (event) => {
     notifyUser(
         "An unknown error occurred!",
