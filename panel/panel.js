@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     } catch (e) {
         // bail out
         console.error(e);
-        if (e.name === "NotSupportedError" || e.name === "TypeError") {
+        if ((e.name === "NotSupportedError" || e.name === "TypeError") && overlay.style.display !== 'none') {
             overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
             document.body.style.overflow = "hidden";
         } else {

@@ -10,6 +10,7 @@ import {
     openPopup,
     notifyUser,
     getWvPsshFromConcatPssh,
+    getWvRequestIdFromLicense,
     SettingsManager,
     ScriptManager,
     AsyncLocalStorage,
@@ -84,12 +85,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         switch (message.type) {
             case "REQUEST":
-                if (!profileConfig.enabled) {
-                    sendResponse();
-                    manifests.clear();
-                    return;
-                }
-
                 if (!sessionCnt[sender.tab.id]) {
                     sessionCnt[sender.tab.id] = 1;
                     setIcon("images/icon-active.png", sender.tab.id);
@@ -166,11 +161,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             }
                         }
                     } else if (message.body.startsWith("pr:")) {
-                        if (!profileConfig.playready.enabled) {
-                            sendResponse();
-                            manifests.clear();
-                            return;
-                        }
                         setBadgeText("PR", sender.tab.id);
                         [ extra.sessionId, pssh ] = split.slice(1);
                         const device_type = profileConfig.playready.type;
@@ -186,11 +176,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 break;
                         }
                     } else {
-                        if (!profileConfig.widevine.enabled) {
-                            sendResponse();
-                            manifests.clear();
-                            return;
-                        }
                         setBadgeText("WV", sender.tab.id);
                         [ pssh, extra.serverCert ] = split;
                         pssh = getWvPsshFromConcatPssh(pssh);
@@ -211,7 +196,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (device) {
                         const res = await device.generateChallenge(pssh, extra);
                         if (res?.sessionKey) {
-                            sessions.set(res.sessionKey, res.sessionValue);
+                            sessions.set(res.sessionKey, {
+                                device: device,
+                                value: res.sessionValue
+                            });
                         }
                         if (res?.challenge) {
                             console.log("[Vineless] Generated license challenge:", res.challenge);
@@ -235,71 +223,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
 
             case "RESPONSE":
-                if (!profileConfig.enabled) {
-                    sendResponse();
-                    manifests.clear();
-                    return;
-                }
-
                 let res = null;
                 try {
                     res = await parseClearKey(message.body);
                 } catch (e) {
-                    let device = null;
+                    let sessionId = null;
                     let license = null;
-                    const extra = {};
                     if (message.body.startsWith("pr:")) {
-                        if (!profileConfig.playready.enabled) {
-                            sendResponse();
-                            manifests.clear();
-                            return;
-                        }
                         const split = message.body.split(':');
-                        const device_type = profileConfig.playready.type;
-                        switch (device_type) {
-                            case "local":
-                                device = new PlayReadyLocal(host, sessions);
-                                break;
-                            case "remote":
-                                device = new GenericRemoteDevice(host, sessions);
-                                break;
-                            case "custom":
-                                device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
-                                break;
-                        }
-                        license = split[2];
-                        extra.sessionId = split[1];
+                        [ sessionId, license ] = split.slice(1);
                     } else {
-                        if (!profileConfig.widevine.enabled) {
-                            sendResponse();
-                            manifests.clear();
-                            return;
-                        }
-                        const device_type = profileConfig.widevine.type;
+                        sessionId = getWvRequestIdFromLicense(message.body);
                         license = message.body;
-                        switch (device_type) {
-                            case "local":
-                                device = new WidevineLocal(host, sessions);
-                                break;
-                            case "remote":
-                                device = new GenericRemoteDevice(host, sessions);
-                                break;
-                            case "custom":
-                                device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
-                                break;
-                        }
                     }
 
-                    if (device) {
-                        res = await device.parseLicense(license, extra);
+                    if (sessionId) {
+                        const session = sessions.get(sessionId);
+                        if (session) {
+                            res = await session.device.parseLicense(license, session.value);
+                            sessions.delete(sessionId);
+                        }
                     }
                 }
 
                 if (res) {
-                    if (res.sessionKey) {
-                        sessions.delete(res.sessionKey);
-                    }
-
                     if (res.log) {
                         console.log("[Vineless]", "KEYS", JSON.stringify(res.log.keys), tab_url);
 
