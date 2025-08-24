@@ -48,6 +48,7 @@
         "keyParseRules": {
             "keyKeyName": "key",
             "kidKeyName": "key_id"
-        }
+        },
+        "messageKey": "message"
     }
 }

@@ -18,6 +18,13 @@
             },
             {
                 "method": "POST",
+                "url": "/public/set_service_certificate",
+                "sessionIdKeyName": "session_id",
+                "serverCertKeyName": "certificate",
+                "serverCertOnly": true
+            },
+            {
+                "method": "POST",
                 "url": "/public/get_license_challenge/STREAMING",
                 "bodyObj": {
                     "privacy_mode": true
@@ -48,6 +55,7 @@
         "keyParseRules": {
             "keyKeyName": "key",
             "kidKeyName": "key_id"
-        }
+        },
+        "messageKey": "message"
     }
 }

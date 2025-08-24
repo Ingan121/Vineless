@@ -227,9 +227,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             notifyUser(
                                 "Challenge generation failed!",
                                 error.message +
-                                "\nRefer to the extension " +
-                                (isSW ? "service worker" : "background page") +
-                                " DevTools console for more details."
+                                "\nSee extension DevTools for details." // Reserve space for long error messages
                             );
                             sendResponse();
                         }
@@ -266,9 +264,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 notifyUser(
                                     "License parsing failed!",
                                     error.message +
-                                    "\nRefer to the extension " +
-                                    (isSW ? "service worker" : "background page") +
-                                    " DevTools console for more details."
+                                    "\nSee extension DevTools for details." // Reserve space for long error messages
                                 );
                             }
                         }
@@ -305,10 +301,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
                 break;
             case "CLOSE":
-                if (sessionCnt[sender.tab.id]) {
-                    if (--sessionCnt[sender.tab.id] === 0) {
-                        setIcon("images/icon.png", sender.tab.id);
-                        setBadgeText(null, sender.tab.id);
+                if (sender?.tab?.id) {
+                    if (sessionCnt[sender.tab.id]) {
+                        if (--sessionCnt[sender.tab.id] === 0) {
+                            setIcon("images/icon.png", sender.tab.id);
+                            setBadgeText(null, sender.tab.id);
+                        }
                     }
                 }
                 sendResponse();
