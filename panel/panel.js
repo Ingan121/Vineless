@@ -383,7 +383,7 @@ async function loadConfig(scope = "global") {
     prEnabled.checked = profileConfig.playready.enabled;
     ckEnabled.checked = profileConfig.clearkey.enabled;
     blockDisabled.checked = profileConfig.blockDisabled;
-    wvServerCert.value = profileConfig.widevine.serverCert;
+    wvServerCert.value = profileConfig.widevine.serverCert || "if_provided";
     SettingsManager.setSelectedDeviceType(profileConfig.widevine.type);
     await DeviceManager.selectWidevineDevice(profileConfig.widevine.device.local);
     await RemoteCDMManager.selectRemoteCDM(profileConfig.widevine.device.remote);
