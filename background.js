@@ -97,7 +97,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (!message.body) {
                     setBadgeText("CK", sender.tab.id);
                     sendResponse();
-                    return;
                 } else {
                     const split = message.body.split(":");
                     let device = null;
