@@ -196,7 +196,7 @@ h1 {
     margin: 5px;
 }
 
-select:not(#wv-server-cert) {
+select[id*="-combobox"] {
     width: 100%;
 }
 
