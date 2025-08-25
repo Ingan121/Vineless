@@ -284,6 +284,8 @@
         return out;
     }
 
+    const SERVICE_CERTIFICATE_CHALLENGE = new Uint8Array([0x08, 0x04]);
+
     (() => {
         const requestMediaKeySystemAccessUnaltered = navigator.requestMediaKeySystemAccess;
         if (!requestMediaKeySystemAccessUnaltered) {
@@ -568,6 +570,32 @@
         }
 
         if (typeof MediaKeySession !== 'undefined') {
+            async function generateRequestLogic(keySystem, initDataType, initData, mediaKeySession) {
+                let data = '';
+                if (initDataType.toLowerCase() === "webm") {
+                    const kid = uint8ArrayToHex(initData);
+                    data = `lookup:${mediaKeySession.sessionId}:${kid}`;
+                } else if (initDataType.toLowerCase() === "cenc") {
+                    const base64Pssh = uint8ArrayToBase64(new Uint8Array(initData));
+                    data = keySystem.startsWith("com.microsoft.playready") ? `pr:${mediaKeySession.sessionId}:${base64Pssh}` : base64Pssh;
+                } else {
+                    throw new Error("Unsupported initDataType: " + initDataType);
+                }
+                if (mediaKeySession._mediaKeys._emeShim.serverCert && profileConfig.widevine.serverCert !== "never") {
+                    data += `:${mediaKeySession._mediaKeys._emeShim.serverCert}`;
+                }
+                const challenge = await emitAndWaitForResponse("REQUEST", data);
+                if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
+                    throw new Error("No challenge received from the background script");
+                }
+                const challengeBytes = base64toUint8Array(challenge);
+
+                const evt = new MediaKeyMessageEvent("message", {
+                    message: challengeBytes.buffer,
+                    messageType: "license-request"
+                });
+                mediaKeySession.dispatchEvent(evt);
+            }
             proxy(MediaKeySession.prototype, 'generateRequest', async (_target, _this, _args) => {
                 console[_this._ck ? "debug" : "log"]("[Vineless] generateRequest" + (_this._ck ? " (Internal)" : ""), _args, "sessionId:", _this.sessionId);
                 const keySystem = _this._mediaKeys?._emeShim?.origKeySystem;
@@ -588,46 +616,18 @@
                         writable: false
                     });
 
-                    if (_args[0].toLowerCase() === "webm") {
-                        const kid = uint8ArrayToHex(_args[1]);
-                        let data = `lookup:${_this.sessionId}:${kid}`;
-                        if (_this._mediaKeys._emeShim.serverCert) {
-                            data += `:${_this._mediaKeys._emeShim.serverCert}`;
-                        }
-                        const challenge = await emitAndWaitForResponse("REQUEST", data);
-                        if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
-                            const error = new Error("[Vineless] No challenge received from the background script (for WebM request)");
-                            console.error(error);
-                            throw error;
-                        }
-                        const challengeBytes = base64toUint8Array(challenge);
-
+                    if (keySystem.startsWith("com.widevine.alpha") && profileConfig.widevine.serverCert === "always" && !_this._mediaKeys._emeShim.serverCert) {
+                        console.debug("[Vineless] generateRequest: Did not receive server certificate in 'always' mode; sending challenge");
+                        _this._serverCertChallenge = [..._args];
                         const evt = new MediaKeyMessageEvent("message", {
-                            message: challengeBytes.buffer,
+                            message: SERVICE_CERTIFICATE_CHALLENGE.buffer,
                             messageType: "license-request"
                         });
                         _this.dispatchEvent(evt);
                         return;
                     }
 
-                    const base64Pssh = uint8ArrayToBase64(new Uint8Array(_args[1]));
-                    let data = keySystem.startsWith("com.microsoft.playready") ? `pr:${_this.sessionId}:${base64Pssh}` : base64Pssh;
-                    if (_this._mediaKeys._emeShim.serverCert) {
-                        data += `:${_this._mediaKeys._emeShim.serverCert}`;
-                    }
-                    const challenge = await emitAndWaitForResponse("REQUEST", data);
-                    if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
-                        const error = new Error("[Vineless] No challenge received from the background script");
-                        console.error(error);
-                        throw error;
-                    }
-                    const challengeBytes = base64toUint8Array(challenge);
-
-                    const evt = new MediaKeyMessageEvent("message", {
-                        message: challengeBytes.buffer,
-                        messageType: "license-request"
-                    });
-                    _this.dispatchEvent(evt);
+                    await generateRequestLogic(keySystem, _args[0], _args[1], _this);
                     console.debug("[Vineless] generateRequest SUCCESS");
                 } catch (e) {
                     console.error("[Vineless] generateRequest FAILED,", e);
@@ -651,6 +651,14 @@
                 }
 
                 const [response] = _args;
+                if (_this._serverCertChallenge) {
+                    _this._mediaKeys._emeShim.serverCert = uint8ArrayToBase64(new Uint8Array(response).slice(5));
+                    const [ initDataType, initData ] = _this._serverCertChallenge;
+                    await generateRequestLogic(keySystem, initDataType, initData, _this);
+                    delete _this._serverCertChallenge;
+                    console.debug("[Vineless] update: Server certificate exchange successful");
+                    return;
+                }
                 const base64Response = uint8ArrayToBase64(new Uint8Array(response));
                 const isPlayReady = keySystem.startsWith("com.microsoft.playready");
                 const data = isPlayReady ? `pr:${_this.sessionId}:${base64Response}` : base64Response;

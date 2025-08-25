@@ -67,6 +67,14 @@
                 <input type="checkbox" id="blockDisabled" name="blockDisabled">
                 <label for="blockDisabled">Block disabled systems</label>
             </div>
+            <div>
+                Widevine server certificate usage:
+                <select id="wv-server-cert">
+                    <option value="always">Always</option>
+                    <option value="if_provided" selected>If Provided</option>
+                    <option value="never">Never</option>
+                </select>
+            </div>
         </fieldset>
         <fieldset id="wvd">
             <legend>Widevine Local</legend>

@@ -131,14 +131,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 const device_type = profileConfig.widevine.type;
                                 switch (device_type) {
                                     case "local":
-                                        device = new WidevineLocal(host, sessions);
+                                        device = new WidevineLocal(host);
                                         extra.serverCert = serverCert;
                                         break;
                                     case "remote":
-                                        device = new GenericRemoteDevice(host, sessions);
+                                        device = new GenericRemoteDevice(host);
                                         break;
                                     case "custom":
-                                        device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
+                                        device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host);
                                         break;
                                 }
                                 break;
@@ -149,13 +149,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 const device_type = profileConfig.playready.type;
                                 switch (device_type) {
                                     case "local":
-                                        device = new PlayReadyLocal(host, sessions);
+                                        device = new PlayReadyLocal(host);
                                         break;
                                     case "remote":
-                                        device = new GenericRemoteDevice(host, sessions);
+                                        device = new GenericRemoteDevice(host);
                                         break;
                                     case "custom":
-                                        device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
+                                        device = new CustomHandlers[profileConfig.playready.device.custom].handler(host);
                                         break;
                                 }
                                 extra.sessionId = sessionId;
@@ -168,13 +168,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         const device_type = profileConfig.playready.type;
                         switch (device_type) {
                             case "local":
-                                device = new PlayReadyLocal(host, sessions);
+                                device = new PlayReadyLocal(host);
                                 break;
                             case "remote":
-                                device = new GenericRemoteDevice(host, sessions);
+                                device = new GenericRemoteDevice(host);
                                 break;
                             case "custom":
-                                device = new CustomHandlers[profileConfig.playready.device.custom].handler(host, sessions);
+                                device = new CustomHandlers[profileConfig.playready.device.custom].handler(host);
                                 break;
                         }
                     } else {
@@ -184,13 +184,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         const device_type = profileConfig.widevine.type;
                         switch (device_type) {
                             case "local":
-                                device = new WidevineLocal(host, sessions);
+                                device = new WidevineLocal(host);
                                 break;
                             case "remote":
-                                device = new GenericRemoteDevice(host, sessions);
+                                device = new GenericRemoteDevice(host);
                                 break;
                             case "custom":
-                                device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host, sessions);
+                                device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host);
                                 break;
                         }
                     }
@@ -198,11 +198,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (device) {
                         try {
                             const res = await device.generateChallenge(pssh, extra);
-                            sessions.set(res.sessionKey, {
-                                device: device,
-                                value: res.sessionValue
-                            });
-                            if (res?.challenge) {
+                            sessions.set(res.sessionKey, device);
+                            if (res.challenge) {
                                 console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", res.sessionKey);
                                 if (res.challenge === "null" || res.challenge === "bnVsbA==") {
                                     notifyUser(
@@ -254,10 +251,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
 
                     if (sessionId) {
-                        const session = sessions.get(sessionId);
-                        if (session) {
+                        const device = sessions.get(sessionId);
+                        if (device) {
                             try {
-                                res = await session.device.parseLicense(license, session.value);
+                                res = await device.parseLicense(license);
                                 sessions.delete(sessionId);
                             } catch (error) {
                                 console.error("[Vineless] License parsing error:", error);
@@ -296,7 +293,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         sendResponse();
                     }
                 } else {
-                    // Most likely exception thrown in interface.parseLicense, which is already notified
+                    // Most likely exception thrown in device.parseLicense, which is already notified above
                     sendResponse();
                 }
                 break;
@@ -349,7 +346,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse(JSON.stringify({
                     enabled: profileConfig.enabled,
                     widevine: {
-                        enabled: wvEnabled
+                        enabled: wvEnabled,
+                        serverCert: profileConfig.widevine.serverCert
                     },
                     playready: {
                         enabled: prEnabled

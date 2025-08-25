@@ -82,6 +82,7 @@ const wvEnabled = document.getElementById('wvEnabled');
 const prEnabled = document.getElementById('prEnabled');
 const ckEnabled = document.getElementById('ckEnabled');
 const blockDisabled = document.getElementById('blockDisabled');
+const wvServerCert = document.getElementById('wv-server-cert');
 
 const wvd_select = document.getElementById('wvd_select');
 const remote_select = document.getElementById('remote_select');
@@ -97,7 +98,7 @@ const pr_remote_combobox = document.getElementById('pr-remote-combobox');
 
 [
     enabled,
-    wvEnabled, prEnabled, ckEnabled, blockDisabled,
+    wvEnabled, prEnabled, ckEnabled, blockDisabled, wvServerCert,
     wvd_select, remote_select, custom_select,
     prd_select, pr_remote_select, pr_custom_select,
     wvd_combobox, remote_combobox,
@@ -382,6 +383,7 @@ async function loadConfig(scope = "global") {
     prEnabled.checked = profileConfig.playready.enabled;
     ckEnabled.checked = profileConfig.clearkey.enabled;
     blockDisabled.checked = profileConfig.blockDisabled;
+    wvServerCert.value = profileConfig.widevine.serverCert;
     SettingsManager.setSelectedDeviceType(profileConfig.widevine.type);
     await DeviceManager.selectWidevineDevice(profileConfig.widevine.device.local);
     await RemoteCDMManager.selectRemoteCDM(profileConfig.widevine.device.remote);
@@ -408,7 +410,8 @@ async function applyConfig() {
                 "remote": remote_combobox.options[remote_combobox.selectedIndex]?.text || null,
                 "custom": custom_combobox.value
             },
-            "type": wvType
+            "type": wvType,
+            "serverCert": wvServerCert.value
         },
         "playready": {
             "enabled": prEnabled.checked,

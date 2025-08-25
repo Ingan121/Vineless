@@ -365,7 +365,8 @@ export class SettingsManager {
                         "remote": null,
                         "custom": null
                     },
-                    "type": "local"
+                    "type": "local",
+                    "serverCert": "if_provided"
                 },
                 "playready": {
                     "enabled": true,

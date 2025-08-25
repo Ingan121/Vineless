@@ -196,7 +196,7 @@ h1 {
     margin: 5px;
 }
 
-select {
+select:not(#wv-server-cert) {
     width: 100%;
 }
 
