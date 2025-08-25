@@ -132,7 +132,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 switch (device_type) {
                                     case "local":
                                         device = new WidevineLocal(host);
-                                        extra.serverCert = serverCert;
                                         break;
                                     case "remote":
                                         device = new GenericRemoteDevice(host);
@@ -141,6 +140,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                         device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host);
                                         break;
                                 }
+                                extra.serverCert = serverCert;
                                 break;
                             }
                             case "PLAYREADY": // UNTESTED
