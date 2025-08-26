@@ -408,7 +408,7 @@ export class SettingsManager {
         return config.enabled;
     }
 
-    static async setGlobalEnalbed(enabled) {
+    static async setGlobalEnabled(enabled) {
         const config = await SettingsManager.getProfile("global");
         config.enabled = enabled;
         setIcon(`images/icon${enabled ? '' : '-disabled'}.png`);

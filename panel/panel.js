@@ -447,9 +447,11 @@ async function applyConfig() {
     // If Vineless is globally disabled, per-site enabled config is completely ignored
     // Enable both global and per-site when switching the per-site one to enabled, if global was disabled
     if (scope === "global" || (config.enabled && !await SettingsManager.getGlobalEnabled())) {
-        await SettingsManager.setGlobalEnalbed(config.enabled);
+        await SettingsManager.setGlobalEnabled(config.enabled);
     }
-    reloadButton.classList.remove('hidden');
+    if (!siteScopeLabel.dataset.hostOverride) {
+        reloadButton.classList.remove('hidden');
+    }
     updateIcon();
 }
 
