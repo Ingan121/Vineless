@@ -22,29 +22,37 @@ select {
     width: 160px;
 }
 
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
 
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
     body {
         background-color: #1b1b1b;
-        color: #D5D5D5;
+        color: #d5d5d5;
+    }
+    a {
+        color: dodgerblue;
     }
     fieldset {
         border-color: #535353;
     }
-    button, select {
-        background-color: #222;
-        color: #D5D5D5;
+    input, button, select {
+        color-scheme: dark;
     }
-    button:hover, select:hover {
-        background-color: #323232;
+    option {
+        color: #d5d5d5;
     }
     .expandableDiv {
-        background-color: #1b2027;
+        background-color: #1b2027 !important;
     }
-    .text-box {
-        background-color: #323232;
-        color: #D5D5D5;
+    .slider {
+        background-color: gray !important;
     }
 }
 
@@ -116,7 +124,7 @@ select {
     border-radius: 50%;
 }
 input:checked + .slider {
-    background-color: #2196F3;
+    background-color: #2196F3 !important;
 }
 input:checked + .slider:before {
     transform: translateX(20px);
