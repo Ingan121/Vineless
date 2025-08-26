@@ -57,6 +57,7 @@ scopeInput.addEventListener('keypress', function (event) {
             return;
         }
         toggle.checked = true;
+        toggle.disabled = false;
         globalScopeLabel.textContent = "Remove";
         siteScopeLabel.innerHTML = escapeHTML(hostOverride) + "&lrm;";
         siteScopeLabel.dataset.hostOverride = hostOverride;
@@ -183,16 +184,20 @@ pr_remote_remove.addEventListener('click', async function() {
     applyConfig();
 });
 
+async function downloadRemote(remoteCdmName) {
+    let remoteCdm = await RemoteCDMManager.loadRemoteCDM(remoteCdmName);
+    if (!remoteCdm.endsWith('\n')) {
+        remoteCdm += '\n';
+    }
+    SettingsManager.downloadFile(new TextEncoder().encode(remoteCdm), remoteCdmName + ".json");
+}
 const remote_download = document.getElementById('remoteDownload');
 remote_download.addEventListener('click', async function() {
     const remote_cdm = remote_combobox.options[remote_combobox.selectedIndex]?.text;
     if (!remote_cdm) {
         return;
     }
-    SettingsManager.downloadFile(
-        await RemoteCDMManager.loadRemoteCDM(remote_cdm),
-        remote_cdm + ".json"
-    )
+    downloadRemote(remote_cdm);
 });
 const pr_remote_download = document.getElementById('prRemoteDownload');
 pr_remote_download.addEventListener('click', async function() {
@@ -200,10 +205,7 @@ pr_remote_download.addEventListener('click', async function() {
     if (!remote_cdm) {
         return;
     }
-    SettingsManager.downloadFile(
-        await RemoteCDMManager.loadRemoteCDM(remote_cdm),
-        remote_cdm + ".json"
-    )
+    downloadRemote(remote_cdm);
 });
 // ============================================
 
