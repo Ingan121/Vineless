@@ -23,7 +23,6 @@
                 <input type="checkbox" id="enabled">
                 <label for="enabled"> Enabled</label>
             </div>
-            <!-- Dark mode -->
             <div id="scopeToggleArea">
                 <label id="globalScopeLabel" class="scopeLabel">Global</label>
                 <label class="switch">
@@ -59,13 +58,15 @@
                 <input type="radio" id="pr_custom_select" name="pr_cdm_type" value="custom" class="hidden">
                 <label for="pr_custom_select">Custom</label>
             </div>
-            <div>
-                <input type="checkbox" id="ckEnabled" name="ckEnabled" checked>
-                <label for="ckEnabled">ClearKey</label>
-            </div>
-            <div>
-                <input type="checkbox" id="blockDisabled" name="blockDisabled">
-                <label for="blockDisabled">Block disabled systems</label>
+            <div id="systemsBottomArea">
+                <div>
+                    <input type="checkbox" id="ckEnabled" name="ckEnabled" checked>
+                    <label for="ckEnabled">ClearKey</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="blockDisabled" name="blockDisabled">
+                    <label for="blockDisabled">Block disabled systems</label>
+                </div>
             </div>
             <div>
                 Widevine server certificate usage:

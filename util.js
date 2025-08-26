@@ -432,21 +432,6 @@ export class SettingsManager {
         URL.revokeObjectURL(url);
     }
 
-    static async saveDarkMode(dark_mode) {
-        await AsyncSyncStorage.setStorage({ dark_mode: dark_mode });
-    }
-
-    static async getDarkMode() {
-        const result = await AsyncSyncStorage.getStorage(["dark_mode"]);
-        return result["dark_mode"] || false;
-    }
-
-    static setDarkMode(dark_mode) {
-        const toggle = document.getElementById('darkModeToggle');
-        toggle.checked = dark_mode;
-        document.body.classList.toggle('dark-mode', dark_mode);
-    }
-
     static async importDevice(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();

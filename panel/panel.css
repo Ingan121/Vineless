@@ -178,6 +178,12 @@ h1 {
     right: 0;
 }
 
+#systemsBottomArea {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 2px;
+}
+
 #wvd, #remote, #custom, #prd, #pr-remote, #pr-custom {
     display: none;
 }
