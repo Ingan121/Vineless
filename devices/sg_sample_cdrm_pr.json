@@ -11,12 +11,12 @@
         "generateChallenge": [
             {
                 "method": "GET",
-                "url": "/public/open",
+                "url": "/{device_name}/open",
                 "sessionIdResKeyName": "data.session_id"
             },
             {
                 "method": "POST",
-                "url": "/public/get_license_challenge",
+                "url": "/{device_name}/get_license_challenge",
                 "bodyObj": {
                     "privacy_mode": true
                 },
@@ -30,19 +30,19 @@
         "parseLicense": [
             {
                 "method": "POST",
-                "url": "/public/parse_license",
+                "url": "/{device_name}/parse_license",
                 "sessionIdKeyName": "session_id",
                 "licenseKeyName": "license_message"
             },
             {
                 "method": "POST",
-                "url": "/public/get_keys",
+                "url": "/{device_name}/get_keys",
                 "sessionIdKeyName": "session_id",
                 "contentKeysKeyName": "data.keys"
             },
             {
                 "method": "GET",
-                "url": "/public/close/%s"
+                "url": "/{device_name}/close/%s"
             }
         ],
         "keyParseRules": {

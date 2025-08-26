@@ -13,12 +13,12 @@
         "generateChallenge": [
             {
                 "method": "GET",
-                "url": "/api/playready/NVIDIA/open",
+                "url": "/api/playready/{device_name}/open",
                 "sessionIdResKeyName": "responseData.session_id"
             },
             {
                 "method": "POST",
-                "url": "/api/playready/NVIDIA/get_challenge",
+                "url": "/api/playready/{device_name}/get_challenge",
                 "bodyObj": {
                     "privacy_mode": true
                 },
@@ -31,14 +31,14 @@
         "parseLicense": [
             {
                 "method": "POST",
-                "url": "/api/playready/NVIDIA/get_keys",
+                "url": "/api/playready/{device_name}/get_keys",
                 "sessionIdKeyName": "session_id",
                 "licenseKeyName": "license_b64",
                 "contentKeysKeyName": "responseData.keys"
             },
             {
                 "method": "GET",
-                "url": "/api/playready/NVIDIA/close/%s"
+                "url": "/api/playready/{device_name}/close/%s"
             }
         ],
         "keyParseRules": {

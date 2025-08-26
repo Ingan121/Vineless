@@ -115,14 +115,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         }
                         pssh = log.pssh_data;
                         switch (log.type) {
-                            case "CLEARKEY": // UNTESTED
-                                const json = JSON.stringify({
-                                    kids: log.keys.map(key => key.kid),
-                                    type: "temporary"
-                                });
-                                setBadgeText("CK", sender.tab.id);
-                                sendResponse(btoa(json));
-                                break;
                             case "WIDEVINE":
                             {
                                 setBadgeText("WV", sender.tab.id);
@@ -263,6 +255,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                     "\nSee extension DevTools for details." // Reserve space for long error messages
                                 );
                             }
+                        } else {
+                            console.error("[Vineless] No device found for session:", sessionId);
+                            notifyUser("License parsing failed!", "No saved device handler found for session " + sessionId);
                         }
                     }
                 }

@@ -1,4 +1,5 @@
 import { WidevineDevice } from "./lib/widevine/device.js";
+import { PlayReadyDevice } from "./lib/playready/device.js";
 import { RemoteCdm } from "./lib/remote_cdm.js";
 import { CustomHandlers } from "./lib/customhandlers/main.js";
 
@@ -452,18 +453,25 @@ export class SettingsManager {
             reader.onload = async function (loaded) {
                 const result = loaded.target.result;
 
-                const widevine_device = new WidevineDevice(result);
-                const b64_device = uint8ArrayToBase64(new Uint8Array(result));
-                const device_name = widevine_device.get_name();
+                try {
+                    const widevine_device = new WidevineDevice(result);
+                    const b64_device = uint8ArrayToBase64(new Uint8Array(result));
+                    const device_name = widevine_device.get_name();
 
-                if (!await DeviceManager.loadWidevineDevice(device_name) ||
-                    (window.resizeTo(800, 600), window.confirm(`Widevine device "${device_name}" already exists. Overwrite?`))
-                ) {
-                    await DeviceManager.saveWidevineDevice(device_name, b64_device);
+                    if (!await DeviceManager.loadWidevineDevice(device_name) ||
+                        (window.resizeTo(800, 600), window.confirm(`Widevine device "${device_name}" already exists. Overwrite?`))
+                    ) {
+                        await DeviceManager.saveWidevineDevice(device_name, b64_device);
+                    }
+
+                    await DeviceManager.saveGlobalSelectedWidevineDevice(device_name);
+                    resolve();
+                } catch (error) {
+                    reject(error);
                 }
-
-                await DeviceManager.saveGlobalSelectedWidevineDevice(device_name);
-                resolve();
+            };
+            reader.onerror = function (error) {
+                reject(error);
             };
             reader.readAsArrayBuffer(file);
         });
@@ -475,31 +483,36 @@ export class SettingsManager {
             reader.onload = async function (loaded) {
                 const result = loaded.target.result;
 
-                let json_file = void 0;
                 try {
-                    json_file = JSON.parse(result);
-                } catch {
+                    const json_file = JSON.parse(result);
+
+                    if (!json_file.host) {
+                        throw new Error("Invalid remote CDM file: missing host");
+                    }
+
+                    console.log("LOADED DEVICE:", json_file);
+                    const remote_cdm = new RemoteCdm(json_file);
+                    const device_name = remote_cdm.getName();
+                    console.log("NAME:", device_name);
+
+                    if (await RemoteCDMManager.loadRemoteCDM(device_name) === "{}" ||
+                        (window.resizeTo(800, 600), window.confirm(`Remote CDM "${device_name}" already exists. Overwrite?`))
+                    ) {
+                        await RemoteCDMManager.saveRemoteCDM(device_name, json_file);
+                    }
+
+                    if (json_file.type === "PLAYREADY") {
+                        await RemoteCDMManager.saveGlobalSelectedPRRemoteCDM(device_name);
+                    } else {
+                        await RemoteCDMManager.saveGlobalSelectedRemoteCDM(device_name);
+                    }
                     resolve();
-                    return;
+                } catch (error) {
+                    reject(error);
                 }
-
-                console.log("LOADED DEVICE:", json_file);
-                const remote_cdm = new RemoteCdm(json_file);
-                const device_name = remote_cdm.getName();
-                console.log("NAME:", device_name);
-
-                if (await RemoteCDMManager.loadRemoteCDM(device_name) === "{}" ||
-                    (window.resizeTo(800, 600), window.confirm(`Remote CDM "${device_name}" already exists. Overwrite?`))
-                ) {
-                    await RemoteCDMManager.saveRemoteCDM(device_name, json_file);
-                }
-
-                if (json_file.type === "PLAYREADY") {
-                    await RemoteCDMManager.saveGlobalSelectedPRRemoteCDM(device_name);
-                } else {
-                    await RemoteCDMManager.saveGlobalSelectedRemoteCDM(device_name);
-                }
-                resolve();
+            };
+            reader.onerror = function (error) {
+                reject(error);
             };
             reader.readAsText(file);
         });
@@ -511,17 +524,25 @@ export class SettingsManager {
             reader.onload = async function (loaded) {
                 const result = loaded.target.result;
 
-                const b64_device = uint8ArrayToBase64(new Uint8Array(result));
-                const device_name = file.name.slice(0, -4);
+                try {
+                    new PlayReadyDevice(new Uint8Array(result)); // Test if valid PlayReady device
+                    const b64_device = uint8ArrayToBase64(new Uint8Array(result));
+                    const device_name = file.name.slice(0, -4);
 
-                if (!await PRDeviceManager.loadPlayreadyDevice(device_name) || 
-                    (window.resizeTo(800, 600), window.confirm(`PlayReady device "${device_name}" already exists. Overwrite?`))
-                ) {
-                    await PRDeviceManager.savePlayreadyDevice(device_name, b64_device);
+                    if (!await PRDeviceManager.loadPlayreadyDevice(device_name) || 
+                        (window.resizeTo(800, 600), window.confirm(`PlayReady device "${device_name}" already exists. Overwrite?`))
+                    ) {
+                        await PRDeviceManager.savePlayreadyDevice(device_name, b64_device);
+                    }
+
+                    await PRDeviceManager.saveGlobalSelectedPlayreadyDevice(device_name);
+                    resolve();
+                } catch (error) {
+                    reject(error);
                 }
-
-                await PRDeviceManager.saveGlobalSelectedPlayreadyDevice(device_name);
-                resolve();
+            };
+            reader.onerror = function (error) {
+                reject(error);
             };
             reader.readAsArrayBuffer(file);
         });

@@ -13,19 +13,19 @@
         "generateChallenge": [
             {
                 "method": "GET",
-                "url": "/public/open",
+                "url": "/{device_name}/open",
                 "sessionIdResKeyName": "data.session_id"
             },
             {
                 "method": "POST",
-                "url": "/public/set_service_certificate",
+                "url": "/{device_name}/set_service_certificate",
                 "sessionIdKeyName": "session_id",
                 "serverCertKeyName": "certificate",
                 "serverCertOnly": true
             },
             {
                 "method": "POST",
-                "url": "/public/get_license_challenge/STREAMING",
+                "url": "/{device_name}/get_license_challenge/STREAMING",
                 "bodyObj": {
                     "privacy_mode": true
                 },
@@ -37,19 +37,19 @@
         "parseLicense": [
             {
                 "method": "POST",
-                "url": "/public/parse_license",
+                "url": "/{device_name}/parse_license",
                 "sessionIdKeyName": "session_id",
                 "licenseKeyName": "license_message"
             },
             {
                 "method": "POST",
-                "url": "/public/get_keys/CONTENT",
+                "url": "/{device_name}/get_keys/CONTENT",
                 "sessionIdKeyName": "session_id",
                 "contentKeysKeyName": "data.keys"
             },
             {
                 "method": "GET",
-                "url": "/public/close/%s"
+                "url": "/{device_name}/close/%s"
             }
         ],
         "keyParseRules": {

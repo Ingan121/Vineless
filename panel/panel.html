@@ -10,8 +10,8 @@
         <img id="icon" src="../images/icon.png" alt="WidevineProxy Icon" width="64"/>
         <div class="header-right">
             <h1>Vineless</h1>
-            Made by Ingan121<br>
-            Based on WidevineProxy2 and PlayreadyProxy2
+            Made by Ingan121 - <a href="https://www.ingan121.com/" target="_blank">www.ingan121.com</a><br>
+            Based on <a href="https://github.com/DevLARLEY/WidevineProxy2" target="_blank">WidevineProxy2</a> and <a href="https://github.com/DevLARLEY/PlayreadyProxy2" target="_blank">PlayreadyProxy2</a>
         </div>
         <p id="version">v1.x</p>
     </div>
@@ -25,7 +25,7 @@
             </div>
             <!-- Dark mode -->
             <div id="scopeToggleArea">
-                <label class="scopeLabel">Global</label>
+                <label id="globalScopeLabel" class="scopeLabel">Global</label>
                 <label class="switch">
                     <input type="checkbox" id="scopeToggle">
                     <span class="slider"></span>
@@ -133,11 +133,13 @@
             <label for="downloader-name">Executable name: </label>
             <input type="text" class="text-box" id="downloader-name">
         </fieldset>
-        <button type="button" id="export">Export Logs</button>
     </fieldset>
     <fieldset>
         <legend>Keys</legend>
-        <button type="button" id="clear">Clear</button>
+        <div id="keyButtons">
+            <button type="button" id="export">Export</button>
+            <button type="button" id="clear">Clear</button>
+        </div>
         <div id="key-container"></div>
     </fieldset>
     <div id="overlay">

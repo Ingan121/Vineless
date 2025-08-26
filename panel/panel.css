@@ -21,9 +21,6 @@ select {
 #downloader-name {
     width: 160px;
 }
-#export {
-    margin-top: 5px;
-}
 
 
 /* Dark mode */
@@ -134,9 +131,14 @@ input.hidden:not(:checked) + label {
     display: none;
 }
 
-#clear {
+#keyButtons {
     width: 100%;
+    display: flex;
     margin-bottom: 3px;
+    gap: 5px;
+}
+#keyButtons > button {
+    flex: 1;
 }
 
 #system > div {

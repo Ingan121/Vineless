@@ -1,10 +1,8 @@
 import "../lib/widevine/protobuf.min.js";
 import "../lib/widevine/license_protocol.js";
-import { Utils } from '../lib/playready/utils.js';
 import {
     AsyncLocalStorage,
     base64toUint8Array,
-    stringToUint8Array,
     getForegroundTab,
     DeviceManager,
     RemoteCDMManager,
@@ -28,16 +26,24 @@ let currentTab = null;
 const enabled = document.getElementById('enabled');
 
 const toggle = document.getElementById('scopeToggle');
+const globalScopeLabel = document.getElementById('globalScopeLabel');
+const siteScopeLabel = document.getElementById('siteScopeLabel');
+const scopeInput = document.getElementById('scopeInput');
+
 toggle.addEventListener('change', async () => {
     if (!toggle.checked) {
+        const hostOverride = siteScopeLabel.dataset.hostOverride;
+        if (hostOverride) {
+            SettingsManager.removeProfile(hostOverride);
+            window.close();
+            return;
+        }
         SettingsManager.removeProfile(new URL(currentTab.url).host);
         loadConfig("global");
         reloadButton.classList.remove("hidden");
     }
 });
 
-const siteScopeLabel = document.getElementById('siteScopeLabel');
-const scopeInput = document.getElementById('scopeInput');
 siteScopeLabel.addEventListener('click', function () {
     scopeInput.value = siteScopeLabel.dataset.hostOverride || new URL(currentTab.url).host;
     scopeInput.style.display = 'block';
@@ -51,8 +57,8 @@ scopeInput.addEventListener('keypress', function (event) {
             return;
         }
         toggle.checked = true;
-        toggle.disabled = true;
-        siteScopeLabel.textContent = hostOverride;
+        globalScopeLabel.textContent = "Remove";
+        siteScopeLabel.innerHTML = escapeHTML(hostOverride) + "&lrm;";
         siteScopeLabel.dataset.hostOverride = hostOverride;
         scopeInput.style.display = 'none';
         loadConfig(hostOverride);
@@ -112,8 +118,16 @@ const pr_remote_combobox = document.getElementById('pr-remote-combobox');
 const export_button = document.getElementById('export');
 export_button.addEventListener('click', async function () {
     const logs = await AsyncLocalStorage.getStorage(null);
-    SettingsManager.downloadFile(stringToUint8Array(JSON.stringify(logs)), "logs.json");
+    SettingsManager.downloadFile(new TextEncoder().encode(JSON.stringify(logs) + "\n"), "logs.json");
 });
+
+for (const a of document.getElementsByTagName('a')) {
+    a.addEventListener('click', (event) => {
+        event.preventDefault();
+        chrome.tabs.create({ url: a.href });
+        window.close();
+    });
+}
 // ======================================
 
 // ================ Widevine Device ================
@@ -214,7 +228,7 @@ prdDownload.addEventListener('click', async function() {
         return;
     }
     SettingsManager.downloadFile(
-        Utils.base64ToBytes(await PRDeviceManager.loadPlayreadyDevice(playready_device)),
+        base64toUint8Array(await PRDeviceManager.loadPlayreadyDevice(playready_device)),
         playready_device + ".prd"
     )
 });
@@ -489,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         currentTab = await getForegroundTab();
         const host = new URL(currentTab.url).host;
         if (host) {
-            siteScopeLabel.textContent = host;
+            siteScopeLabel.innerHTML = escapeHTML(host) + "&lrm;";
             if (await SettingsManager.profileExists(host)) {
                 toggle.checked = true;
             }
