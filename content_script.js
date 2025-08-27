@@ -565,6 +565,14 @@
                 // Server certificates are not supported on ClearKey or PlayReady
                 return false;
             });
+            proxy(MediaKeys.prototype, 'getStatusForPolicy', async (_target, _this, _args) => {
+                console.log("[Vineless] getStatusForPolicy");
+                const keySystem = _this._emeShim?.origKeySystem;
+                if (!await getEnabledForKeySystem(keySystem) || _this._ck) {
+                    return await _target.apply(_this, _args);
+                }
+                return "usable";
+            });
 
             hookKeySystem(MediaKeys);
         }
