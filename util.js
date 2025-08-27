@@ -471,8 +471,8 @@ export class SettingsManager {
                 try {
                     const json_file = JSON.parse(result);
 
-                    if (!json_file.host) {
-                        throw new Error("Invalid remote CDM file: missing host");
+                    if (!json_file.host && !json_file.sg_api_conf) {
+                        throw new Error("Invalid remote CDM file: missing host on non-SuperGeneric device");
                     }
 
                     console.log("LOADED DEVICE:", json_file);

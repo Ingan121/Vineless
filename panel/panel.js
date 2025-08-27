@@ -299,6 +299,8 @@ async function appendLog(result) {
     const logContainer = document.createElement('div');
     logContainer.classList.add('log-container');
 
+    const pssh = result.pssh_data || result.wrm_header;
+
     logContainer.innerHTML = `
         <button class="toggleButton">+</button>
         <div class="expandableDiv collapsed">
@@ -312,8 +314,7 @@ async function appendLog(result) {
                 Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}">
             </label>
             <label class="expanded-only right-bound">
-            <label class="expanded-only right-bound">
-                ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box" value='${escapeHTML(result.pssh_data || result.wrm_header)}'>
+                ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box pssh-box" value='${escapeHTML(pssh)}'>
             </label>
             <label class="expanded-only right-bound key-copy">
                 <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box" value="${key_string}">
@@ -369,6 +370,14 @@ async function appendLog(result) {
             toggleButtons.innerHTML = "+";
             expandableDiv.classList.remove('expanded');
             expandableDiv.classList.add('collapsed');
+        }
+    });
+
+    // Remote duplicate existing entry
+    const psshBoxes = key_container.querySelectorAll('.log-container .pssh-box');
+    psshBoxes.forEach(box => {
+        if (box.value === pssh) {
+            box.parentElement.parentElement.parentElement.remove();
         }
     });
 
