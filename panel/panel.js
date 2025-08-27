@@ -291,7 +291,7 @@ function getFriendlyType(type) {
     }
 }
 
-async function appendLog(result) {
+async function appendLog(result, testDuplicate) {
     const key_string = result.keys.map(key => `--key ${key.kid}:${key.k}`).join(' ');
     const date = new Date(result.timestamp * 1000);
     const date_string = date.toLocaleString();
@@ -374,12 +374,14 @@ async function appendLog(result) {
     });
 
     // Remote duplicate existing entry
-    const psshBoxes = key_container.querySelectorAll('.log-container .pssh-box');
-    psshBoxes.forEach(box => {
-        if (box.value === pssh) {
-            box.parentElement.parentElement.parentElement.remove();
-        }
-    });
+    if (testDuplicate) {
+        const psshBoxes = key_container.querySelectorAll('.log-container .pssh-box');
+        psshBoxes.forEach(box => {
+            if (box.value === pssh) {
+                box.parentElement.parentElement.parentElement.remove();
+            }
+        });
+    }
 
     key_container.appendChild(logContainer);
 
@@ -389,7 +391,7 @@ async function appendLog(result) {
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
     if (areaName === 'local') {
         for (const [key, values] of Object.entries(changes)) {
-            await appendLog(values.newValue);
+            await appendLog(values.newValue, true);
         }
     }
 });
@@ -397,7 +399,7 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
 async function checkLogs() {
     const logs = await AsyncLocalStorage.getStorage(null);
     Object.values(logs).forEach(async (result) => {
-        await appendLog(result);
+        await appendLog(result, false);
     });
 }
 
