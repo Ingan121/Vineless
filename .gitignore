@@ -1,7 +1,5 @@
 *.zip
 *.xpi
 *.crx
-devices/*.wvd
-devices/*.prd
-devices/kx*.json
+devices/private
 dist/
