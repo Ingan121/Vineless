@@ -28,10 +28,9 @@
 + Some services may detect your browser and interfere with PlayReady playback. Try using a user-agent changer extension, or use a Chromium-based browser for PlayReady playback.
 + Firefox-based browsers may fail to play some PlayReady-protected video, with an internal error saying `ChromiumCDMParent::RecvDecodeFailed with status decode error`. This is a problem with the browser's ClearKey handler, and Vineless can do nothing about it. Please use a Chromium-based browser if this error occurs.
 + Incompatible extensions:
-  + WidevineProxy2, or anything similar
-  + PlayreadyProxy2, or anything similar
+  + WidevineProxy2, PlayreadyProxy2, or anything similar
   + EME Call and Event Logger (extension, not the userscript)
-  + For Vineless to work, these extensions must be fully disabled in the browser's extensions page
++ For Vineless to work, these extensions must be fully disabled in the browser's extensions page
 
 ## Installation
 + Chrome
@@ -51,12 +50,12 @@
     3. Click `Load Temporary Add-on...` and select the downloaded file
 
 ## Setup
-+ Open the extension and click one of the `Choose File` buttons to select device files
-+ Select the type of device you're using in the top `Systems` section
++ Open the extension and select the type of device you're using in the top `Systems` section
++ Click one of the `Choose File` buttons to select device files
 + The files are saved in the extension's `chrome.storage.sync` storage and will be synchronized across any browsers into which the user is signed in with their Google account.
 + The maximum number of devices is ~25 Local **OR** ~200 Remote CDMs
 + The maximum number of per-site profiles is ~200 profiles
-+ Check `Enabled` to activate the message interception and you're done.
++ You're all set!
 
 ## Usage
 All the user has to do is to play a DRM protected video. With everything set up properly, videos will start to play even without a supported DRM system.

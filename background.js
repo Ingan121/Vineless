@@ -10,7 +10,6 @@ import {
     openPopup,
     notifyUser,
     getWvPsshFromConcatPssh,
-    getWvRequestIdFromLicense,
     SettingsManager,
     ScriptManager,
     AsyncLocalStorage,
@@ -72,8 +71,7 @@ async function parseClearKey(body) {
 
     return {
         pssh: pssh_data,
-        log: log,
-        sessionKey: null
+        log: log
     }
 }
 
@@ -87,6 +85,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         switch (message.type) {
             case "REQUEST":
+            {
                 if (!sessionCnt[sender.tab.id]) {
                     sessionCnt[sender.tab.id] = 1;
                     setIcon("images/icon-active.png", sender.tab.id);
@@ -98,12 +97,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     setBadgeText("CK", sender.tab.id);
                     sendResponse();
                 } else {
-                    const split = message.body.split(":");
+                    const parsed = JSON.parse(message.body);
+                    const { keySystem, sessionId, initDataType, initData, serverCert } = parsed;
                     let device = null;
-                    let pssh = null;
+                    let pssh = initData;
                     const extra = { tab: sender.tab };
-                    if (message.body.startsWith("lookup:")) {
-                        const [ _, sessionId, kidHex, serverCert ] = split;
+                    if (initDataType === "webm") {
+                        const kidHex = uint8ArrayToHex(base64toUint8Array(initData));
                         // Find first log that contains the requested KID
                         const log = logs.find(log =>
                             log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
@@ -122,13 +122,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 const device_type = profileConfig.widevine.type;
                                 switch (device_type) {
                                     case "local":
-                                        device = new WidevineLocal(host);
+                                        device = WidevineLocal;
                                         break;
                                     case "remote":
-                                        device = new GenericRemoteDevice(host);
+                                        device = GenericRemoteDevice;
                                         break;
                                     case "custom":
-                                        device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host);
+                                        device = CustomHandlers[profileConfig.widevine.device.custom].handler;
                                         break;
                                 }
                                 extra.serverCert = serverCert;
@@ -140,58 +140,57 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 const device_type = profileConfig.playready.type;
                                 switch (device_type) {
                                     case "local":
-                                        device = new PlayReadyLocal(host);
+                                        device = PlayReadyLocal;
                                         break;
                                     case "remote":
-                                        device = new GenericRemoteDevice(host);
+                                        device = GenericRemoteDevice;
                                         break;
                                     case "custom":
-                                        device = new CustomHandlers[profileConfig.playready.device.custom].handler(host);
+                                        device = CustomHandlers[profileConfig.playready.device.custom].handler;
                                         break;
                                 }
-                                extra.sessionId = sessionId;
                                 break;
                             }
                         }
-                    } else if (message.body.startsWith("pr:")) {
+                    } else if (keySystem.startsWith("com.microsoft.playready")) {
                         setBadgeText("PR", sender.tab.id);
-                        [ extra.sessionId, pssh ] = split.slice(1);
                         const device_type = profileConfig.playready.type;
                         switch (device_type) {
                             case "local":
-                                device = new PlayReadyLocal(host);
+                                device = PlayReadyLocal;
                                 break;
                             case "remote":
-                                device = new GenericRemoteDevice(host);
+                                device = GenericRemoteDevice;
                                 break;
                             case "custom":
-                                device = new CustomHandlers[profileConfig.playready.device.custom].handler(host);
+                                device = CustomHandlers[profileConfig.playready.device.custom].handler;
                                 break;
                         }
                     } else {
                         setBadgeText("WV", sender.tab.id);
-                        [ pssh, extra.serverCert ] = split;
+                        extra.serverCert = serverCert;
                         pssh = getWvPsshFromConcatPssh(pssh);
                         const device_type = profileConfig.widevine.type;
                         switch (device_type) {
                             case "local":
-                                device = new WidevineLocal(host);
+                                device = WidevineLocal;
                                 break;
                             case "remote":
-                                device = new GenericRemoteDevice(host);
+                                device = GenericRemoteDevice;
                                 break;
                             case "custom":
-                                device = new CustomHandlers[profileConfig.widevine.device.custom].handler(host);
+                                device = CustomHandlers[profileConfig.widevine.device.custom].handler;
                                 break;
                         }
                     }
 
                     if (device) {
                         try {
-                            const res = await device.generateChallenge(pssh, extra);
-                            sessions.set(res.sessionKey, device);
+                            const instance = new device(host, keySystem, sessionId);
+                            const res = await instance.generateChallenge(pssh, extra);
+                            sessions.set(sessionId, instance);
                             if (res.challenge) {
-                                console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", res.sessionKey);
+                                console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", sessionId);
                                 if (res.challenge === "null" || res.challenge === "bnVsbA==") {
                                     notifyUser(
                                         "Challenge generation failed!",
@@ -225,22 +224,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
                 }
                 break;
+            }
 
             case "RESPONSE":
+            {
+                const parsed = JSON.parse(message.body);
+                const { keySystem, sessionId, license, persistent } = parsed;
                 let res = null;
-                try {
-                    res = await parseClearKey(message.body);
-                } catch (e) {
-                    let sessionId = null;
-                    let license = null;
-                    if (message.body.startsWith("pr:")) {
-                        const split = message.body.split(':');
-                        [ sessionId, license ] = split.slice(1);
-                    } else {
-                        sessionId = getWvRequestIdFromLicense(message.body);
-                        license = message.body;
-                    }
-
+                if (keySystem === "org.w3.clearkey") {
+                    res = await parseClearKey(license);
+                } else {
                     if (sessionId) {
                         const device = sessions.get(sessionId);
                         if (device) {
@@ -270,8 +263,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         res.log.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
                         res.log.title = sender.tab?.title;
 
+                        if (persistent && profileConfig.allowPersistence) {
+                            res.log.sessionId = sessionId;
+                        }
+
                         logs.push(res.log);
-                        await AsyncLocalStorage.setStorage({[res.pssh]: res.log});
+                        await AsyncLocalStorage.setStorage({[res.log.sessionId || res.pssh]: res.log});
 
                         sendResponse(JSON.stringify({
                             pssh: res.pssh,
@@ -291,6 +288,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     sendResponse();
                 }
                 break;
+            }
+            case "LOAD":
+            {
+                if (!sessionCnt[sender.tab.id]) {
+                    sessionCnt[sender.tab.id] = 1;
+                    setIcon("images/icon-active.png", sender.tab.id);
+                } else {
+                    sessionCnt[sender.tab.id]++;
+                }
+
+                const parsed = JSON.parse(message.body);
+                const { keySystem, sessionId } = parsed;
+                if (keySystem === "org.w3.clearkey") {
+                    setBadgeText("CK", sender.tab.id);
+                } else if (keySystem.startsWith("com.microsoft.playready")) {
+                    setBadgeText("PR", sender.tab.id);
+                } else if (keySystem.startsWith("com.widevine.alpha")) {
+                    setBadgeText("WV", sender.tab.id);
+                }
+
+                const savedLogs = AsyncLocalStorage.getStorage();
+                for (const [key, log] of Object.entries(savedLogs)) {
+                    if (key === sessionId) {
+                        sendResponse(JSON.stringify({
+                            pssh: log.pssh_data || log.wrm_header,
+                            keys: log.keys
+                        }));
+                        break;
+                    }
+                }
+                sendResponse();
+                notifyUser("Persistent session not found", "Web page tried to load a persistent session that does not exist.");
+                break;
+            }
+
             case "CLOSE":
                 if (sender?.tab?.id) {
                     if (sessionCnt[sender.tab.id]) {

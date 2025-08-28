@@ -58,6 +58,14 @@
 
     const genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 
+    function generateClearKeyInitData(keys) {
+        const json = JSON.stringify({
+            kids: keys.map(key => base64ToBase64Url(uint8ArrayToBase64(hexToUint8Array(key.kid)))),
+            type: "temporary"
+        });
+        return new TextEncoder().encode(json);
+    }
+
     function generateClearKeyLicense(keys) {
         return JSON.stringify({
             keys: keys.map(({ k, kid }) => ({
@@ -68,48 +76,6 @@
             })),
             type: "temporary"
         });
-    }
-
-    function makeCkInitData(keys) {
-        const systemId = new Uint8Array([
-            0x10, 0x77, 0xef, 0xec,
-            0xc0, 0xb2,
-            0x4d, 0x02,
-            0xac, 0xe3,
-            0x3c, 0x1e, 0x52, 0xe2, 0xfb, 0x4b
-        ]);
-
-        const kidCount = keys.length;
-        const kidDataLength = kidCount * 16;
-        const dataSize = 0;
-
-        const size = 4 + 4 + 4 + 16 + 4 + kidDataLength + 4 + dataSize;
-        const buffer = new ArrayBuffer(size);
-        const view = new DataView(buffer);
-
-        let offset = 0;
-
-        view.setUint32(offset, size); offset += 4;
-        view.setUint32(offset, 0x70737368); offset += 4; // 'pssh'
-        view.setUint8(offset++, 0x01); // version 1
-        view.setUint8(offset++, 0x00); // flags (3 bytes)
-        view.setUint8(offset++, 0x00);
-        view.setUint8(offset++, 0x00);
-
-        new Uint8Array(buffer, offset, 16).set(systemId); offset += 16;
-
-        view.setUint32(offset, kidCount); offset += 4;
-
-        for (const key of keys) {
-            const kidBytes = hexToUint8Array(key.kid);
-            if (kidBytes.length !== 16) throw new Error("Invalid KID length");
-            new Uint8Array(buffer, offset, 16).set(kidBytes);
-            offset += 16;
-        }
-
-        view.setUint32(offset, dataSize); offset += 4;
-
-        return new Uint8Array(buffer);
     }
 
     function emitAndWaitForResponse(type, data) {
@@ -340,7 +306,8 @@
                     const systemAccess = await _target.apply(_this, _args);
                     if (enabled) {
                         systemAccess._emeShim = {
-                            origKeySystem
+                            origKeySystem,
+                            persistent: origConfig[0].persistentState !== "not-allowed"
                         };
                         systemAccess._getRealConfiguration = systemAccess.getConfiguration;
                         systemAccess.getConfiguration = function () {
@@ -430,7 +397,10 @@
 
                         const access = await requestMediaKeySystemAccessUnaltered.call(navigator, "org.w3.clearkey", [ckConfig.keySystemConfiguration]);
 
-                        access._emeShim = { origKeySystem };
+                        access._emeShim = {
+                            origKeySystem,
+                            persistent: config.keySystemConfiguration.persistentState !== "not-allowed"
+                        };
                         access._getRealConfiguration = access.getConfiguration;
 
                         // Patch `getConfiguration()` to reflect original input
@@ -579,20 +549,19 @@
 
         if (typeof MediaKeySession !== 'undefined') {
             async function generateRequestLogic(keySystem, initDataType, initData, mediaKeySession) {
-                let data = '';
-                if (initDataType.toLowerCase() === "webm") {
-                    const kid = uint8ArrayToHex(initData);
-                    data = `lookup:${mediaKeySession.sessionId}:${kid}`;
-                } else if (initDataType.toLowerCase() === "cenc") {
-                    const base64Pssh = uint8ArrayToBase64(new Uint8Array(initData));
-                    data = keySystem.startsWith("com.microsoft.playready") ? `pr:${mediaKeySession.sessionId}:${base64Pssh}` : base64Pssh;
-                } else {
+                const data = {
+                    keySystem: keySystem,
+                    sessionId: mediaKeySession.sessionId,
+                    initDataType: initDataType,
+                    initData: uint8ArrayToBase64(new Uint8Array(initData))
+                };
+                if (!["webm", "cenc"].includes(initDataType.toLowerCase())) {
                     throw new Error("Unsupported initDataType: " + initDataType);
                 }
                 if (mediaKeySession._mediaKeys._emeShim.serverCert && profileConfig.widevine.serverCert !== "never") {
-                    data += `:${mediaKeySession._mediaKeys._emeShim.serverCert}`;
+                    data.serverCert = mediaKeySession._mediaKeys._emeShim.serverCert;
                 }
-                const challenge = await emitAndWaitForResponse("REQUEST", data);
+                const challenge = await emitAndWaitForResponse("REQUEST", JSON.stringify(data));
                 if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
                     throw new Error("No challenge received from the background script");
                 }
@@ -603,6 +572,72 @@
                     messageType: "license-request"
                 });
                 mediaKeySession.dispatchEvent(evt);
+            }
+            async function updateLogic(keySystem, bgResponse, mediaKeySession) {
+                try {
+                    const parsed = JSON.parse(bgResponse);
+                    console.log("[Vineless] Received keys from the background script:", parsed, mediaKeySession);
+                    if (parsed && mediaKeySession._mediaKeys) {
+                        if (!mediaKeySession._mediaKeys._ckKeys) {
+                            const ckAccess = await requestMediaKeySystemAccessUnaltered.call(navigator, 'org.w3.clearkey', [mediaKeySession._mediaKeys._ckConfig]);
+                            mediaKeySession._mediaKeys._ckKeys = await ckAccess.createMediaKeys();
+                            mediaKeySession._mediaKeys._ckKeys._emeShim = {
+                                origMediaKeys: mediaKeySession._mediaKeys
+                            };
+                        }
+
+                        const ckLicense = generateClearKeyLicense(parsed.keys);
+
+                        mediaKeySession._ckSession = mediaKeySession._mediaKeys._ckKeys.createSession();
+                        mediaKeySession._ckSession._ck = true;
+
+                        await mediaKeySession._ckSession.generateRequest('keyids', generateClearKeyInitData(parsed.keys));
+
+                        const encoder = new TextEncoder();
+                        const encodedLicense = encoder.encode(ckLicense);
+                        await mediaKeySession._ckSession.update(encodedLicense);
+
+                        const keyStatuses = new Map();
+                        const addedKeys = new Set();
+                        for (const { kid } of parsed.keys) {
+                            // Some require unflipped one, others (PR only) require flipped one
+                            // So include both unless duplicate
+                            const raw = hexToUint8Array(kid);
+                            if (keySystem.startsWith("com.microsoft.playready")) {
+                                const flipped = flipUUIDByteOrder(raw);
+
+                                for (const keyBytes of [raw, flipped]) {
+                                    const keyHex = Array.from(keyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                                    if (!addedKeys.has(keyHex)) {
+                                        keyStatuses.set(keyBytes, "usable");
+                                        addedKeys.add(keyHex);
+                                    }
+                                }
+                            } else {
+                                // Some services hate having extra keys on Widevine
+                                keyStatuses.set(raw, "usable");
+                            }
+                        }
+
+                        Object.defineProperty(mediaKeySession, "keyStatuses", {
+                            value: keyStatuses,
+                            writable: false
+                        });
+
+                        const keyStatusEvent = new Event("keystatuseschange");
+                        mediaKeySession.dispatchEvent(keyStatusEvent);
+
+                        console.debug("[Vineless] updateLogic SUCCESS, keyStatuses:", keyStatuses);
+                        return true;
+                    } else {
+                        console.error("[Vineless] updateLogic FAILED, no MediaKeys available!");
+                        return false;
+                    }
+                } catch (e) {
+                    console.error("[Vineless] updateLogic FAILED,", e);
+                    // If parsing failed, fall through to original Widevine path
+                    return false;
+                }
             }
             proxy(MediaKeySession.prototype, 'generateRequest', async (_target, _this, _args) => {
                 console[_this._ck ? "debug" : "log"]("[Vineless] generateRequest" + (_this._ck ? " (Internal)" : ""), _args, "sessionId:", _this.sessionId);
@@ -667,78 +702,52 @@
                     console.debug("[Vineless] update: Server certificate exchange successful");
                     return;
                 }
+
                 const base64Response = uint8ArrayToBase64(new Uint8Array(response));
-                const isPlayReady = keySystem.startsWith("com.microsoft.playready");
-                const data = isPlayReady ? `pr:${_this.sessionId}:${base64Response}` : base64Response;
-                const bgResponse = await emitAndWaitForResponse("RESPONSE", data);
+                const data = {
+                    keySystem: keySystem,
+                    sessionId: _this.sessionId,
+                    license: base64Response,
+                    persistent: _this._mediaKeys._emeShim.persistent
+                };
+                const bgResponse = await emitAndWaitForResponse("RESPONSE", JSON.stringify(data));
 
-                try {
-                    const parsed = JSON.parse(bgResponse);
-                    console.log("[Vineless] Received keys from the background script:", parsed, _this);
-                    if (parsed && _this._mediaKeys) {
-                        if (!_this._mediaKeys._ckKeys) {
-                            const ckAccess = await requestMediaKeySystemAccessUnaltered.call(navigator, 'org.w3.clearkey', [_this._mediaKeys._ckConfig]);
-                            _this._mediaKeys._ckKeys = await ckAccess.createMediaKeys();
-                            _this._mediaKeys._ckKeys._emeShim = {
-                                origMediaKeys: _this._mediaKeys
-                            };
-                        }
-
-                        const ckLicense = generateClearKeyLicense(parsed.keys);
-
-                        _this._ckSession = _this._mediaKeys._ckKeys.createSession();
-                        _this._ckSession._ck = true;
-
-                        try {
-                            await _this._ckSession.generateRequest('cenc', parsed.pssh);
-                        } catch {
-                            const pssh = makeCkInitData(parsed.keys);
-                            await _this._ckSession.generateRequest('cenc', pssh);
-                        }
-
-                        const encoder = new TextEncoder();
-                        const encodedLicense = encoder.encode(ckLicense);
-                        await _this._ckSession.update(encodedLicense);
-
-                        const keyStatuses = new Map();
-                        const addedKeys = new Set();
-                        for (const { kid } of parsed.keys) {
-                            // Some require unflipped one, others (PR only) require flipped one
-                            // So include both unless duplicate
-                            const raw = hexToUint8Array(kid);
-                            if (isPlayReady) {
-                                const flipped = flipUUIDByteOrder(raw);
-
-                                for (const keyBytes of [raw, flipped]) {
-                                    const keyHex = Array.from(keyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-                                    if (!addedKeys.has(keyHex)) {
-                                        keyStatuses.set(keyBytes, "usable");
-                                        addedKeys.add(keyHex);
-                                    }
-                                }
-                            } else {
-                                // Some services hate having extra keys on Widevine
-                                keyStatuses.set(raw, "usable");
-                            }
-                        }
-
-                        Object.defineProperty(_this, "keyStatuses", {
-                            value: keyStatuses,
-                            writable: false
-                        });
-
-                        const keyStatusEvent = new Event("keystatuseschange");
-                        _this.dispatchEvent(keyStatusEvent);
-
-                        console.debug("[Vineless] update SUCCESS, keyStatuses:", keyStatuses);
-                        return;
-                    } else {
-                        console.error("[Vineless] update FAILED, no MediaKeys available!");
-                    }
-                } catch (e) {
-                    console.error("[Vineless] update FAILED,", e);
-                    // If parsing failed, fall through to original Widevine path
+                if (await updateLogic(keySystem, bgResponse, _this)) {
+                    console.debug("[Vineless] update SUCCESS");
+                    return;
                 }
+
+                return await _target.apply(_this, _args);
+            });
+            proxy(MediaKeySession.prototype, 'load', async (_target, _this, _args) => {
+                const [sessionId] = _args;
+                console.log("[Vineless] load", sessionId);
+                const keySystem = _this?._mediaKeys?._emeShim?.origKeySystem;
+                if (!await getEnabledForKeySystem(keySystem) || _this._ck) {
+                    return await _target.apply(_this, _args);
+                }
+
+                const data = {
+                    keySystem: keySystem,
+                    sessionId: sessionId
+                };
+                const bgResponse = await emitAndWaitForResponse("LOAD", JSON.stringify(data));
+
+                if (await updateLogic(keySystem, bgResponse, _this)) {
+                    console.debug("[Vineless] load SUCCESS");
+                    return true;
+                }
+
+                return await _target.apply(_this, _args);
+            });
+            proxy(MediaKeySession.prototype, 'remove', async (_target, _this, _args) => {
+                console.log("[Vineless] remove", _args);
+                const keySystem = _this?._mediaKeys?._emeShim?.origKeySystem;
+                if (!await getEnabledForKeySystem(keySystem) || _this._ck) {
+                    return await _target.apply(_this, _args);
+                }
+
+                // not implemented yet
 
                 return await _target.apply(_this, _args);
             });

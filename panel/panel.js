@@ -89,6 +89,7 @@ const wvEnabled = document.getElementById('wvEnabled');
 const prEnabled = document.getElementById('prEnabled');
 const ckEnabled = document.getElementById('ckEnabled');
 const blockDisabled = document.getElementById('blockDisabled');
+const allowPersistence = document.getElementById('allowPersistence');
 const wvServerCert = document.getElementById('wv-server-cert');
 
 const wvd_select = document.getElementById('wvd_select');
@@ -105,7 +106,7 @@ const pr_remote_combobox = document.getElementById('pr-remote-combobox');
 
 [
     enabled,
-    wvEnabled, prEnabled, ckEnabled, blockDisabled, wvServerCert,
+    wvEnabled, prEnabled, ckEnabled, blockDisabled, allowPersistence, wvServerCert,
     wvd_select, remote_select, custom_select,
     prd_select, pr_remote_select, pr_custom_select,
     wvd_combobox, remote_combobox,
@@ -322,6 +323,9 @@ async function appendLog(result, testDuplicate) {
             <label class="expanded-only right-bound">
                 Date:<input type="text" class="text-box" value="${date_string}">
             </label>
+            <label class="expanded-only right-bound">
+                Persist:<input type="text" class="text-box" value="${result.sessionId ? `Yes (Session ID: ${escapeHTML(result.sessionId)})` : 'No'}">
+            </label>
             ${result.manifests.length > 0 ? `<label class="expanded-only right-bound manifest-copy">
                 <a href="#" title="Click to copy">Manifest:</a><select id="manifest" class="text-box"></select>
             </label>
@@ -375,13 +379,22 @@ async function appendLog(result, testDuplicate) {
 
     // Remote duplicate existing entry
     if (testDuplicate) {
-        const psshBoxes = key_container.querySelectorAll('.log-container .pssh-box');
-        psshBoxes.forEach(box => {
-            if (box.value === pssh) {
-                box.parentElement.parentElement.parentElement.remove();
+        const logContainers = key_container.querySelectorAll('.log-container');
+        logContainers.forEach(container => {
+            if (result.sessionId) {
+                if (container.dataset.sessionId === result.sessionId) {
+                    container.remove();
+                }
+            } else {
+                if (container.dataset.pssh === pssh && container.dataset.sessionId === "") {
+                    container.remove();
+                }
             }
         });
     }
+
+    logContainer.dataset.pssh = pssh;
+    logContainer.dataset.sessionId = result.sessionId || "";
 
     key_container.appendChild(logContainer);
 
@@ -410,6 +423,7 @@ async function loadConfig(scope = "global") {
     prEnabled.checked = profileConfig.playready.enabled;
     ckEnabled.checked = profileConfig.clearkey.enabled;
     blockDisabled.checked = profileConfig.blockDisabled;
+    allowPersistence.checked = profileConfig.allowPersistence;
     wvServerCert.value = profileConfig.widevine.serverCert || "if_provided";
     SettingsManager.setSelectedDeviceType(profileConfig.widevine.type);
     await DeviceManager.selectWidevineDevice(profileConfig.widevine.device.local);
@@ -452,7 +466,8 @@ async function applyConfig() {
         "clearkey": {
             "enabled": ckEnabled.checked
         },
-        "blockDisabled": blockDisabled.checked
+        "blockDisabled": blockDisabled.checked,
+        "allowPersistence": allowPersistence.checked
     };
     main.dataset.wvType = wvType;
     main.dataset.prType = prType;

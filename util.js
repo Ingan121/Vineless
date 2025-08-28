@@ -3,8 +3,6 @@ import { PlayReadyDevice } from "./lib/playready/device.js";
 import { RemoteCdm } from "./lib/remote_cdm.js";
 import { CustomHandlers } from "./lib/customhandlers/main.js";
 
-const { SignedMessage, License } = protobuf.roots.default.license_protocol;
-
 export class AsyncSyncStorage {
     static async setStorage(items) {
         return new Promise((resolve, reject) => {
@@ -381,7 +379,8 @@ export class SettingsManager {
                 "clearkey": {
                     "enabled": true
                 },
-                "blockDisabled": false
+                "blockDisabled": false,
+                "allowPersistence": false
             }
         }
         return result[scope];
@@ -700,19 +699,6 @@ export function getWvPsshFromConcatPssh(psshBase64) {
     }
 
     return psshBase64;
-}
-
-export function getWvRequestIdFromLicense(licenseB64) {
-    const license = base64toUint8Array(licenseB64);
-    const signed_license_message = SignedMessage.decode(license);
-
-    if (signed_license_message.type !== SignedMessage.MessageType.LICENSE) {
-        console.log("[Vineless]", "INVALID_MESSAGE_TYPE", signed_license_message.type.toString());
-        return;
-    }
-
-    const license_obj = License.decode(signed_license_message.msg);
-    return uint8ArrayToBase64(license_obj.id.requestId);
 }
 
 export async function setIcon(filename, tabId = undefined) {

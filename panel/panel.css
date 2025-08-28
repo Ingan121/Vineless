@@ -181,7 +181,10 @@ h1 {
 #systemsBottomArea {
     display: flex;
     gap: 5px;
-    margin-bottom: 2px;
+}
+
+#wv-server-cert {
+    margin-top: 2px;
 }
 
 #wvd, #remote, #custom, #prd, #pr-remote, #pr-custom {
