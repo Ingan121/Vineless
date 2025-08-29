@@ -231,6 +231,7 @@ select[id*="-combobox"] {
     overflow: hidden;
     background-color: lightblue;
     padding: 0;
+    position: relative;
 }
 .expandableDiv.expanded {
     padding: 5px;
@@ -246,6 +247,11 @@ select[id*="-combobox"] {
 }
 .expandableDiv.expanded .expanded-only {
     display: block;
+}
+.removeButton {
+    position: absolute;
+    top: 5px;
+    left: 7px;
 }
 
 #overlay {

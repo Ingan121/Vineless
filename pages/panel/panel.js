@@ -305,6 +305,7 @@ async function appendLog(result, testDuplicate) {
     logContainer.innerHTML = `
         <button class="toggleButton">+</button>
         <div class="expandableDiv collapsed">
+            <a href="#" class="expanded-only removeButton">x</a>
             <label class="always-visible right-bound">
                 URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}">
             </label>
@@ -363,19 +364,31 @@ async function appendLog(result, testDuplicate) {
         });
     }
 
-    const toggleButtons = logContainer.querySelector('.toggleButton');
-    toggleButtons.addEventListener('click', function () {
+    const toggleButton = logContainer.querySelector('.toggleButton');
+    toggleButton.addEventListener('click', function () {
         const expandableDiv = this.nextElementSibling;
         if (expandableDiv.classList.contains('collapsed')) {
-            toggleButtons.innerHTML = "-";
+            toggleButton.innerHTML = "-";
             expandableDiv.classList.remove('collapsed');
             expandableDiv.classList.add('expanded');
         } else {
-            toggleButtons.innerHTML = "+";
+            toggleButton.innerHTML = "+";
             expandableDiv.classList.remove('expanded');
             expandableDiv.classList.add('collapsed');
         }
     });
+
+    const removeButton = logContainer.querySelector('.removeButton');
+    removeButton.addEventListener('click', () => {
+        logContainer.remove();
+        AsyncLocalStorage.removeStorage([logContainer.dataset.sessionId || logContainer.dataset.pssh]);
+    });
+
+    for (const a of logContainer.getElementsByTagName('a')) {
+        a.addEventListener('click', (event) => {
+            event.preventDefault();
+        });
+    }
 
     // Remote duplicate existing entry
     if (testDuplicate) {
