@@ -1,5 +1,5 @@
-import "../lib/widevine/protobuf.min.js";
-import "../lib/widevine/license_protocol.js";
+import "../../lib/widevine/protobuf.min.js";
+import "../../lib/widevine/license_protocol.js";
 import {
     AsyncLocalStorage,
     base64toUint8Array,
@@ -10,9 +10,9 @@ import {
     CustomHandlerManager,
     SettingsManager,
     escapeHTML
-} from "../util.js";
+} from "../../util.js";
 
-import { CustomHandlers } from "../lib/customhandlers/main.js";
+import { CustomHandlers } from "../../lib/customhandlers/main.js";
 
 const overlay = document.getElementById('overlay');
 const overlayMessage = document.getElementById('overlayMessage');
@@ -324,7 +324,7 @@ async function appendLog(result, testDuplicate) {
                 Date:<input type="text" class="text-box" value="${date_string}">
             </label>
             <label class="expanded-only right-bound">
-                Persist:<input type="text" class="text-box" value="${result.sessionId ? `Yes (Session ID: ${escapeHTML(result.sessionId)})` : 'No'}">
+                Persist:<input type="text" class="text-box" value="${result.sessionId ? ((result.removed ? 'Removed' : 'Yes') + ` (Session ID: ${escapeHTML(result.sessionId)})`) : 'No'}">
             </label>
             ${result.manifests.length > 0 ? `<label class="expanded-only right-bound manifest-copy">
                 <a href="#" title="Click to copy">Manifest:</a><select id="manifest" class="text-box"></select>
@@ -493,11 +493,11 @@ async function getSessionCount() {
 
 async function updateIcon() {
     if (await getSessionCount()) {
-        icon.src = "../images/icon-active.png";
+        icon.src = "../../images/icon-active.png";
     } else if (await SettingsManager.getGlobalEnabled()) {
-        icon.src = "../images/icon.png";
+        icon.src = "../../images/icon.png";
     } else {
-        icon.src = "../images/icon-disabled.png";
+        icon.src = "../../images/icon-disabled.png";
     }
 }
 

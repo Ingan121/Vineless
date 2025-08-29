@@ -1,0 +1,31 @@
+body {
+    font-family: sans-serif;
+}
+
+#message {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+#openErrors {
+    margin-right: 5px;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: black;
+        color: white;
+        color-scheme: dark;
+    }
+    a {
+        color: dodgerblue;
+    }
+}

@@ -19,7 +19,7 @@
     "*://*/*"
   ],
   "action": {
-    "default_popup": "panel/panel.html",
+    "default_popup": "pages/panel/panel.html",
     "default_icon": {
       "128": "images/icon.png"
     }

@@ -1,6 +1,6 @@
-import "../lib/widevine/protobuf.min.js";
-import "../lib/widevine/license_protocol.js";
-import { SettingsManager } from "../util.js";
+import "../../lib/widevine/protobuf.min.js";
+import "../../lib/widevine/license_protocol.js";
+import { SettingsManager } from "../../util.js";
 
 const type = new URL(location.href).searchParams.get('type');
 const fileInput = document.getElementById('fileInput');

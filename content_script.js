@@ -299,6 +299,11 @@
                         _args[0] = "com.ingan121.vineless.invalid";
                         await _target.apply(_this, _args); // should throw here
                     }
+                    if (!profileConfig.allowPersistence && (origConfig[0].persistentState === "required")) {
+                        console.warn("[Vineless] Denying persistentState: required due to user preference");
+                        _args[0] = "com.ingan121.vineless.invalid";
+                        await _target.apply(_this, _args); // should throw here
+                    }
                     if (enabled && origKeySystem !== "org.w3.clearkey") {
                         _args[0] = "org.w3.clearkey";
                         _args[1] = await sanitizeConfigForClearKey(_args[1]);
@@ -574,6 +579,11 @@
                 mediaKeySession.dispatchEvent(evt);
             }
             async function updateLogic(keySystem, bgResponse, mediaKeySession) {
+                if (!bgResponse || bgResponse === "undefined") {
+                    console.error("[Vineless] updateLogic FAILED, background script did not return the content keys");
+                    return false;
+                }
+
                 try {
                     const parsed = JSON.parse(bgResponse);
                     console.log("[Vineless] Received keys from the background script:", parsed, mediaKeySession);
@@ -733,6 +743,11 @@
                 };
                 const bgResponse = await emitAndWaitForResponse("LOAD", JSON.stringify(data));
 
+                Object.defineProperty(_this, "sessionId", {
+                    value: sessionId,
+                    writable: false
+                });
+
                 if (await updateLogic(keySystem, bgResponse, _this)) {
                     console.debug("[Vineless] load SUCCESS");
                     return true;
@@ -741,15 +756,14 @@
                 return await _target.apply(_this, _args);
             });
             proxy(MediaKeySession.prototype, 'remove', async (_target, _this, _args) => {
-                console.log("[Vineless] remove", _args);
+                console.log("[Vineless] remove");
                 const keySystem = _this?._mediaKeys?._emeShim?.origKeySystem;
                 if (!await getEnabledForKeySystem(keySystem) || _this._ck) {
                     return await _target.apply(_this, _args);
                 }
 
-                // not implemented yet
-
-                return await _target.apply(_this, _args);
+                await emitAndWaitForResponse("REMOVE", _this.sessionId);
+                return;
             });
             proxy(MediaKeySession.prototype, 'close', async (_target, _this, _args) => {
                 console.log("[Vineless] close");

@@ -25,7 +25,7 @@
             },
             {
                 "method": "POST",
-                "url": "/{device_name}/get_license_challenge/STREAMING",
+                "url": "/{device_name}/get_license_challenge/AUTOMATIC",
                 "bodyObj": {
                     "privacy_mode": true
                 },

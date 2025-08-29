@@ -782,14 +782,25 @@ export function escapeHTML(str) {
     }[tag] || tag));
 }
 
-export function notifyUser(title, message) {
+export function notifyUser(title, message, noConsoleLog) {
+    if (!noConsoleLog) {
+        console.error(`[Vineless] ${title}: ${message}`);
+    }
+
     if (chrome.notifications?.create) {
-        chrome.notifications.create({
+        const id = Date.now().toString();
+        chrome.notifications.create(id, {
             type: "basic",
             iconUrl: chrome.runtime.getURL("images/icon.png"),
             title: title,
             message: message
-        })
+        });
+        chrome.notifications.onClicked.addListener((notificationId) => {
+            if (notificationId === id) {
+                const url = `pages/errview/errview.html?title=${encodeURIComponent(title)}&message=${encodeURIComponent(message)}`;
+                openPopup(url, 640, 480);
+            }
+        });
     } else if (self.alert) {
         alert(message);
     }

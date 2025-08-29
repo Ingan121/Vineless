@@ -214,7 +214,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             notifyUser(
                                 "Challenge generation failed!",
                                 error.message +
-                                "\nSee extension DevTools for details." // Reserve space for long error messages
+                                "\nSee extension DevTools for details.", // Reserve space for long error messages
+                                true
                             );
                             sendResponse();
                         }
@@ -245,12 +246,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 notifyUser(
                                     "License parsing failed!",
                                     error.message +
-                                    "\nSee extension DevTools for details." // Reserve space for long error messages
+                                    "\nSee extension DevTools for details.", // Reserve space for long error messages
+                                    true
                                 );
                             }
                         } else {
                             console.error("[Vineless] No device found for session:", sessionId);
-                            notifyUser("License parsing failed!", "No saved device handler found for session " + sessionId);
+                            notifyUser("License parsing failed!", "No saved device handler found for session " + sessionId, true);
                         }
                     }
                 }
@@ -268,7 +270,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         }
 
                         logs.push(res.log);
-                        await AsyncLocalStorage.setStorage({[res.log.sessionId || res.pssh]: res.log});
+                        await AsyncLocalStorage.setStorage({ [res.log.sessionId || res.pssh]: res.log });
 
                         sendResponse(JSON.stringify({
                             pssh: res.pssh,
@@ -308,21 +310,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     setBadgeText("WV", sender.tab.id);
                 }
 
-                const savedLogs = AsyncLocalStorage.getStorage();
+                const savedLogs = await AsyncLocalStorage.getStorage();
                 for (const [key, log] of Object.entries(savedLogs)) {
-                    if (key === sessionId) {
+                    console.log(key, sessionId, key === sessionId);
+                    if (key === sessionId && !log.removed) {
                         sendResponse(JSON.stringify({
                             pssh: log.pssh_data || log.wrm_header,
                             keys: log.keys
                         }));
-                        break;
+                        return;
                     }
                 }
                 sendResponse();
                 notifyUser("Persistent session not found", "Web page tried to load a persistent session that does not exist.");
                 break;
             }
-
+            case "REMOVE":
+            {
+                const sessionId = message.body;
+                const item = (await AsyncLocalStorage.getStorage(sessionId))?.[sessionId];
+                if (item) {
+                    const itemOrigin = new URL(item.url).origin;
+                    const tabOrigin = new URL(tab_url).origin;
+                    console.log(itemOrigin, tabOrigin);
+                    if (itemOrigin === tabOrigin) {
+                        item.removed = true;
+                        await AsyncLocalStorage.setStorage({ [sessionId]: item });
+                    }
+                }
+                sendResponse();
+                break;
+            }
             case "CLOSE":
                 if (sender?.tab?.id) {
                     if (sessionCnt[sender.tab.id]) {
@@ -381,20 +399,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     clearkey: {
                         enabled: profileConfig.clearkey.enabled
                     },
-                    blockDisabled: profileConfig.blockDisabled
+                    blockDisabled: profileConfig.blockDisabled,
+                    allowPersistence: profileConfig.allowPersistence
                 }));
                 break;
             case "OPEN_PICKER_WVD":
                 if (message.from === "content" || sender.tab) return;
-                openPopup('picker/filePicker.html?type=wvd', 450, 200);
+                openPopup('pages/picker/filePicker.html?type=wvd', 450, 200);
                 break;
             case "OPEN_PICKER_REMOTE":
                 if (message.from === "content" || sender.tab) return;
-                openPopup('picker/filePicker.html?type=remote', 450, 200);
+                openPopup('pages/picker/filePicker.html?type=remote', 450, 200);
                 break;
             case "OPEN_PICKER_PRD":
                 if (message.from === "content" || sender.tab) return;
-                openPopup('picker/filePicker.html?type=prd', 450, 200);
+                openPopup('pages/picker/filePicker.html?type=prd', 450, 200);
                 break;
             case "CLEAR":
                 if (message.from === "content" || sender.tab) return;
@@ -449,7 +468,8 @@ self.addEventListener('error', (event) => {
         (event.message || event.error) +
         "\nRefer to the extension " +
         (isSW ? "service worker" : "background page") +
-        " DevTools console for more details."
+        " DevTools console for more details.",
+        true
     );
 });
 self.addEventListener('unhandledrejection', (event) => {
@@ -458,6 +478,7 @@ self.addEventListener('unhandledrejection', (event) => {
         (event.reason) +
         "\nRefer to the extension " +
         (isSW ? "service worker" : "background page") +
-        " DevTools console for more details."
+        " DevTools console for more details.",
+        true
     );
 });

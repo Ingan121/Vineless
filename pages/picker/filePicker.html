@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Choose a device file</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="filePicker.css">
+    </head>
+    <body>
+        <input type="file" id="fileInput"/>
+        <script type="module" src="filePicker.js" defer></script>
+        <br><br><br><br><br><br><br><br>
+        <!--
+            feature primarily made for mobile browsers with broken file picker;
+            put it below sight for normal popup windows on desktops
+        -->
+        <p>Or download and import from a remote URL:</p>
+        <input type="url" id="urlInput"/>
+        <button id="urlImport">Import</button>
+    </body>
+</html>
