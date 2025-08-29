@@ -52,10 +52,12 @@
 ## Setup
 + Open the extension and select the type of device you're using in the top `Systems` section
 + Click one of the `Choose File` buttons to select device files
++ You're all set!
+
+## Notes
 + The files are saved in the extension's `chrome.storage.sync` storage and will be synchronized across any browsers into which the user is signed in with their Google account.
 + The maximum number of devices is ~25 Local **OR** ~200 Remote CDMs
 + The maximum number of per-site profiles is ~200 profiles
-+ You're all set!
 
 ## Usage
 All the user has to do is to play a DRM protected video. With everything set up properly, videos will start to play even without a supported DRM system.
