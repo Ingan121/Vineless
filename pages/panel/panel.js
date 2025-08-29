@@ -253,10 +253,8 @@ pr_custom_combobox.addEventListener('change', function () {
 // =================================================
 
 // ================ Command Options ================
-const use_shaka = document.getElementById('use-shaka');
-use_shaka.addEventListener('change', async function (){
-    await SettingsManager.saveUseShakaPackager(use_shaka.checked);
-});
+const decryptionEngineGroup = document.getElementById('decryption-engine-group');
+const engineShaka = document.getElementById('engine-shaka');
 
 const downloader_name = document.getElementById('downloader-name');
 downloader_name.addEventListener('input', async function (event){
@@ -276,7 +274,25 @@ clear.addEventListener('click', async function() {
 async function createCommand(json, key_string, title) {
     const metadata = JSON.parse(json);
     const header_string = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
-    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${await SettingsManager.getUseShakaPackager() ? "--use-shaka-packager " : ""}${title ? `--save-name "${title}" ` : ""}-M format=mkv`;
+
+    // Get selected decryption engine
+    const engine = document.querySelector('input[name="decryption-engine"]:checked').value;
+    let engineArg = `--decryption-engine ${engine}`;
+
+    // Get selected muxer and format, combine as required
+    const muxer = document.querySelector('input[name="muxer"]:checked').value;
+    const format = document.querySelector('input[name="format"]:checked').value;
+    let formatMuxerArg = `-M format=${format}:muxer=${muxer}`;
+
+    // Stream options
+    let streamArgs = [];
+    const videoStream = document.querySelector('input[name="video-stream"]:checked').value;
+    if (videoStream === "best") streamArgs.push('-sv best');
+    if (videoStream === "1080") streamArgs.push('-sv res="1080*"');
+    if (document.getElementById('audio-all').checked) streamArgs.push('-sa all');
+    if (document.getElementById('subs-all').checked) streamArgs.push('-ss all');
+
+    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${engineArg} ${formatMuxerArg} ${streamArgs.join(' ')}${title ? ` --save-name "${title}"` : ""}`.trim();
 }
 
 function getFriendlyType(type) {
@@ -561,3 +577,55 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 });
 // ======================================
+
+// --- Command Option Persistence ---
+
+// Helper: Save all command option settings
+async function saveCommandOptions() {
+    const opts = {
+        decryptionEngine: document.querySelector('input[name="decryption-engine"]:checked')?.value,
+        muxer: document.querySelector('input[name="muxer"]:checked')?.value,
+        format: document.querySelector('input[name="format"]:checked')?.value,
+        videoStream: document.querySelector('input[name="video-stream"]:checked')?.value,
+        audioAll: document.getElementById('audio-all').checked,
+        subsAll: document.getElementById('subs-all').checked
+    };
+    await SettingsManager.saveCommandOptions(opts);
+}
+
+// Helper: Restore all command option settings
+async function restoreCommandOptions() {
+    const opts = await SettingsManager.getCommandOptions?.() || {};
+    if (opts.decryptionEngine) {
+        const radio = document.querySelector(`input[name="decryption-engine"][value="${opts.decryptionEngine}"]`);
+        if (radio) radio.checked = true;
+    }
+    if (opts.muxer) {
+        const radio = document.querySelector(`input[name="muxer"][value="${opts.muxer}"]`);
+        if (radio) radio.checked = true;
+    }
+    if (opts.format) {
+        const radio = document.querySelector(`input[name="format"][value="${opts.format}"]`);
+        if (radio) radio.checked = true;
+    }
+    if (opts.videoStream) {
+        const radio = document.querySelector(`input[name="video-stream"][value="${opts.videoStream}"]`);
+        if (radio) radio.checked = true;
+    }
+    document.getElementById('audio-all').checked = !!opts.audioAll;
+    document.getElementById('subs-all').checked = !!opts.subsAll;
+}
+
+// Add event listeners to save on change
+[
+    ...document.querySelectorAll('input[name="decryption-engine"]'),
+    ...document.querySelectorAll('input[name="muxer"]'),
+    ...document.querySelectorAll('input[name="format"]'),
+    ...document.querySelectorAll('input[name="video-stream"]'),
+    document.getElementById('audio-all'),
+    document.getElementById('subs-all')
+].forEach(elem => {
+    elem.addEventListener('change', saveCommandOptions);
+});
+
+// --- END Command Option Persistence ---
