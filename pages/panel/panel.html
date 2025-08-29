@@ -17,9 +17,8 @@
         </div>
         <p id="version">v1.x</p>
     </div>
-    <fieldset id="main" data-wv-type="local" data-pr-type="local">
-        <legend>Settings</legend>
-        <div id="settings">
+    <details id="main" class="collapsible-section" data-wv-type="local" data-pr-type="local">
+        <summary id="main-summary">Settings</summary>
             <!-- Enabled -->
             <div>
                 <input type="checkbox" id="enabled">
@@ -133,13 +132,51 @@
             </label>
             <p id="pr-custom-desc"></p>
         </fieldset>
-        <fieldset id="command-options">
-            <legend>Command options</legend>
-            <input type="checkbox" id="use-shaka">
-            <label for="use-shaka"> Use Shaka Packager</label><br>
-            <label for="downloader-name">Executable name: </label>
-            <input type="text" class="text-box" id="downloader-name">
-        </fieldset>
+    </details>
+    <!-- Move Command Options OUTSIDE of details -->
+    <fieldset id="command-options">
+        <legend>Command options</legend>
+        <div id="decryption-engine-group">
+            <label>Decryption Engine:</label><br>
+            <input type="radio" name="decryption-engine" id="engine-shaka" value="SHAKA_PACKAGER" checked>
+            <label for="engine-shaka">Shaka Packager</label>
+            <input type="radio" name="decryption-engine" id="engine-mp4decrypt" value="MP4DECRYPT">
+            <label for="engine-mp4decrypt">mp4decrypt</label>
+            <input type="radio" name="decryption-engine" id="engine-ffmpeg" value="FFMPEG">
+            <label for="engine-ffmpeg">FFmpeg</label>
+        </div>
+        <div>
+            <label>Muxer:</label><br>
+            <input type="radio" name="muxer" id="muxer-ffmpeg" value="ffmpeg" checked>
+            <label for="muxer-ffmpeg">ffmpeg</label>
+            <input type="radio" name="muxer" id="muxer-mkvmerge" value="mkvmerge">
+            <label for="muxer-mkvmerge">mkvmerge</label>
+        </div>
+        <div>
+            <label>Format:</label><br>
+            <input type="radio" name="format" id="format-mp4" value="mp4" checked>
+            <label for="format-mp4">mp4</label>
+            <input type="radio" name="format" id="format-mkv" value="mkv">
+            <label for="format-mkv">mkv</label>
+            <input type="radio" name="format" id="format-ts" value="ts">
+            <label for="format-ts">ts</label>
+        </div>
+        <div>
+            <label>Video Stream:</label><br>
+            <input type="radio" name="video-stream" id="video-best" value="best" checked>
+            <label for="video-best">Best available video</label>
+            <input type="radio" name="video-stream" id="video-1080" value="1080">
+            <label for="video-1080">1080p video</label>
+        </div>
+        <div>
+            <label>Audio & Subtitle Streams:</label><br>
+            <input type="checkbox" id="audio-all">
+            <label for="audio-all">All audio tracks</label>
+            <input type="checkbox" id="subs-all">
+            <label for="subs-all">All subtitle tracks</label>
+        </div>
+        <label for="downloader-name">Executable name: </label>
+        <input type="text" class="text-box" id="downloader-name">
     </fieldset>
     <fieldset>
         <legend>Keys</legend>
