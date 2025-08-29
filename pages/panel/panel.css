@@ -54,6 +54,11 @@ a:hover {
     .slider {
         background-color: gray !important;
     }
+
+    .collapsible-section > summary {
+        background: #23272e;
+        color: #ffffff;
+    }
 }
 
 /* Switch */
@@ -263,4 +268,27 @@ select[id*="-combobox"] {
 }
 #overlayMessage {
     margin: 30px;
+}
+/* ...Shrink Settings Menu... */
+.collapsible-section[open] {
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
+}
+.collapsible-section:not([open]) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.collapsible-section > summary {
+    cursor: pointer;
+    font-weight: bold;
+    background: #eee;
+    padding: 4px 8px;
+    border-radius: 4px;
+    outline: none;
+}
+.collapsible-section:not([open]) > summary {
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
 }
