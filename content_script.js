@@ -147,7 +147,6 @@
             const audioCaps = config.audioCapabilities || [];
 
             const initDataTypes = config.initDataTypes || ["cenc"];
-            const sessionTypes = config.sessionTypes || ["temporary"];
 
             const cleanVideoCaps = [];
             const cleanAudioCaps = [];
@@ -180,7 +179,7 @@
                             initDataType: "cenc",
                             distinctiveIdentifier: "not-allowed",
                             persistentState: "optional",
-                            sessionTypes
+                            sessionTypes: ["temporary"]
                         },
                         _ck: true
                     };
@@ -206,7 +205,7 @@
                     initDataTypes,
                     distinctiveIdentifier: "not-allowed",
                     persistentState: "optional",
-                    sessionTypes,
+                    sessionTypes: ["temporary"],
                     videoCapabilities: cleanVideoCaps.length ? cleanVideoCaps : undefined,
                     audioCapabilities: cleanAudioCaps.length ? cleanAudioCaps : undefined
                 });
@@ -510,7 +509,10 @@
         if (typeof MediaKeys !== 'undefined') {
             proxy(MediaKeys.prototype, 'createSession', (_target, _this, _args) => {
                 const isInternal = _this._emeShim?.origMediaKeys;
-                console[isInternal ? "debug" : "log"]("[Vineless] createSession" + (isInternal ? " (Internal)" : ""));
+                console[isInternal ? "debug" : "log"]("[Vineless] createSession" + (isInternal ? " (Internal)" : ""), _args[0]);
+                // Always use temporary for external sessions as persistence is internally managed by Vineless
+                // This ensures that persistent mode works regardless of the browser ClearKey handler's persistence capability
+                _args[0] = "temporary";
                 const session = _target.apply(_this, _args);
                 session._mediaKeys = _this;
 
