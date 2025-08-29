@@ -557,8 +557,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             siteScopeLabel.textContent = "<no origin>";
             toggle.disabled = true;
         }
-        use_shaka.checked = await SettingsManager.getUseShakaPackager();
         downloader_name.value = await SettingsManager.getExecutableName();
+        await restoreCommandOptions();
         CustomHandlerManager.loadSetAllCustomHandlers();
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();
