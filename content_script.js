@@ -298,8 +298,8 @@
                         _args[0] = "com.ingan121.vineless.invalid";
                         await _target.apply(_this, _args); // should throw here
                     }
-                    if (!profileConfig.allowPersistence && (origConfig[0].persistentState === "required")) {
-                        console.warn("[Vineless] Denying persistentState: required due to user preference");
+                    if (!profileConfig.allowPersistence && !origConfig.some(c => !c.sessionTypes || (c.sessionTypes.length === 1 && c.sessionTypes.includes('temporary')))) {
+                        console.warn("[Vineless] Denying persistent-license due to user preference");
                         _args[0] = "com.ingan121.vineless.invalid";
                         await _target.apply(_this, _args); // should throw here
                     }
