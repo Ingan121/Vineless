@@ -106,9 +106,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         // Find first log that contains the requested KID
                         const logs = Object.values(await AsyncLocalStorage.getStorage());
                         const log = logs.find(log =>
-                            log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
+                            log.origin === origin && log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
                         );
-                        if (!log || log.origin !== origin) {
+                        if (!log) {
                             console.warn("[Vineless] Lookup failed: no log found for KID", kidHex);
                             sendResponse();
                             return;
@@ -263,6 +263,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             }
                         }
                         existing.url = tab_url;
+                        existing.keys = res.keys;
                         existing.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
                         existing.title = sender.tab?.title;
                         existing.timestamp = Math.floor(Date.now() / 1000);
@@ -317,8 +318,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
 
                 const logs = Object.values(await AsyncLocalStorage.getStorage());
-                const log = logs.find(log => log.sessions.includes(sessionId));
-                if (log && log.origin === origin) {
+                const log = logs.find(log => log.origin === origin && log.sessions.includes(sessionId));
+                if (log) {
                     sendResponse(JSON.stringify({
                         pssh: log.pssh,
                         keys: log.keys
@@ -343,7 +344,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (log && log.origin === origin) {
                     const idx = log.sessions.indexOf(sessionId);
                     log.sessions.splice(idx, 1);
-                    await AsyncLocalStorage.setStorage({ [log.pssh]: log });
+                    await AsyncLocalStorage.setStorage({ [log.pssh + origin]: log });
                 }
                 sendResponse();
                 break;

@@ -432,7 +432,7 @@ async function appendLog(result, testDuplicate) {
             if (sessionSelect.selectedIndex === 0) return;
             event.preventDefault();
             result.sessions.splice(sessionSelect.selectedIndex - 1, 1);
-            AsyncLocalStorage.setStorage({ [pssh]: result });
+            AsyncLocalStorage.setStorage({ [pssh + result.origin]: result });
         });
     }
 

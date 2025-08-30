@@ -28,37 +28,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-    body {
-        background-color: #1b1b1b;
-        color: #d5d5d5;
-    }
-    a {
-        color: dodgerblue;
-    }
-    fieldset {
-        border-color: #535353;
-    }
-    input, button, select {
-        color-scheme: dark;
-    }
-    option {
-        color: #d5d5d5;
-    }
-    .expandableDiv {
-        background-color: #1b2027 !important;
-    }
-    .slider {
-        background-color: gray !important;
-    }
-
-    .collapsible-section > summary {
-        background: #23272e;
-        color: #ffffff;
-    }
-}
-
 /* Switch */
 #scopeToggleArea {
     margin-left: 10px;
@@ -309,4 +278,34 @@ select[id*="-combobox"] {
     opacity: 1;
     pointer-events: auto;
     filter: none;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1b1b1b;
+        color: #d5d5d5;
+    }
+    a {
+        color: dodgerblue;
+    }
+    fieldset {
+        border-color: #535353;
+    }
+    input, button, select {
+        color-scheme: dark;
+    }
+    option {
+        color: #d5d5d5;
+    }
+    .expandableDiv {
+        background-color: #1b2027;
+    }
+    .slider {
+        background-color: gray !important;
+    }
+    .collapsible-section > summary {
+        background: #23272e;
+        color: #ffffff;
+    }
 }
