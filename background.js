@@ -408,7 +408,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         enabled: profileConfig.clearkey.enabled
                     },
                     blockDisabled: profileConfig.blockDisabled,
-                    allowPersistence: profileConfig.allowPersistence && origin !== null
+                    allowPersistence: profileConfig.allowPersistence && origin !== null && !sender.tab?.incognito,
                 }));
                 break;
             case "OPEN_PICKER_WVD":
