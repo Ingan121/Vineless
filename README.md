@@ -15,7 +15,7 @@
 ## Compatibility
 + Should be compatible with all modern browsers that support the standard EME, the ClearKey CDM, and the Manifest V3 extensions
 + Tested browsers
-  + Chrome, Edge, Brave, Supermium, ungoogled-chromium, Firefox, and Marble on Windows
+  + Chrome, Edge, Brave, Supermium, ungoogled-chromium, Firefox, LibreWolf, and Marble on Windows
   + Lemur Browser on Android
 + Incompatible browsers:
   + Tor Browser (does not support ClearKey)
@@ -58,7 +58,7 @@
 + The files are saved in the extension's `chrome.storage.sync` storage and will be synchronized across any browsers into which the user is signed in with their Google account.
 + The maximum number of devices is ~25 Local **OR** ~200 Remote CDMs
 + The maximum number of per-site profiles is ~200 profiles
-+ Number of saved key logs is unlimited as long as your disk space allows
++ The number of saved key logs is unlimited as long as your disk space allows
 
 ## Usage
 All the user has to do is to play a DRM protected video. With everything set up properly, videos will start to play even without a supported DRM system.
