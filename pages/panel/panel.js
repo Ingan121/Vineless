@@ -18,11 +18,12 @@ const overlay = document.getElementById('overlay');
 const overlayMessage = document.getElementById('overlayMessage');
 const icon = document.getElementById('icon');
 const main = document.getElementById('main');
-const key_container = document.getElementById('key-container');
+const commandOptions = document.getElementById('command-options');
+const keyContainer = document.getElementById('key-container');
 
 let currentTab = null;
 
-// ================ Main ================
+// #region Main
 const enabled = document.getElementById('enabled');
 
 const toggle = document.getElementById('scopeToggle');
@@ -92,33 +93,40 @@ const blockDisabled = document.getElementById('blockDisabled');
 const allowPersistence = document.getElementById('allowPersistence');
 const wvServerCert = document.getElementById('wv-server-cert');
 
-const wvd_select = document.getElementById('wvd_select');
-const remote_select = document.getElementById('remote_select');
-const custom_select = document.getElementById('custom_select');
-const prd_select = document.getElementById('prd_select');
-const pr_remote_select = document.getElementById('pr_remote_select');
-const pr_custom_select = document.getElementById('pr_custom_select');
+const wvdSelect = document.getElementById('wvdSelect');
+const remoteSelect = document.getElementById('remoteSelect');
+const customSelect = document.getElementById('customSelect');
+const prdSelect = document.getElementById('prdSelect');
+const prRemoteSelect = document.getElementById('prRemoteSelect');
+const prCustomSelect = document.getElementById('prCustomSelect');
 
-const wvd_combobox = document.getElementById('wvd-combobox');
-const remote_combobox = document.getElementById('remote-combobox');
-const prd_combobox = document.getElementById('prd-combobox');
-const pr_remote_combobox = document.getElementById('pr-remote-combobox');
+const wvdCombobox = document.getElementById('wvd-combobox');
+const remoteCombobox = document.getElementById('remote-combobox');
+const prdCombobox = document.getElementById('prd-combobox');
+const prRemoteCombobox = document.getElementById('pr-remote-combobox');
 
 [
     enabled,
     wvEnabled, prEnabled, ckEnabled, blockDisabled, allowPersistence, wvServerCert,
-    wvd_select, remote_select, custom_select,
-    prd_select, pr_remote_select, pr_custom_select,
-    wvd_combobox, remote_combobox,
-    prd_combobox, pr_remote_combobox,
+    wvdSelect, remoteSelect, customSelect,
+    prdSelect, prRemoteSelect, prCustomSelect,
+    wvdCombobox, remoteCombobox,
+    prdCombobox, prRemoteCombobox,
 ].forEach(elem => {
     elem.addEventListener('change', async function () {
         applyConfig();
     });
 })
 
-const export_button = document.getElementById('export');
-export_button.addEventListener('click', async function () {
+main.addEventListener('toggle', async function () {
+    SettingsManager.setUICollapsed(!main.open, !commandOptions.open);
+});
+commandOptions.addEventListener('toggle', async function () {
+    SettingsManager.setUICollapsed(!main.open, !commandOptions.open);
+});
+
+const exportButton = document.getElementById('export');
+exportButton.addEventListener('click', async function () {
     const logs = await AsyncLocalStorage.getStorage(null);
     SettingsManager.downloadFile(new TextEncoder().encode(JSON.stringify(logs) + "\n"), "logs.json");
 });
@@ -130,9 +138,9 @@ for (const a of document.getElementsByTagName('a')) {
         window.close();
     });
 }
-// ======================================
+// #endregion Main
 
-// ================ Widevine Device ================
+// #region Widevine Device
 document.getElementById('fileInput').addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: "OPEN_PICKER_WVD" });
     window.close();
@@ -140,26 +148,26 @@ document.getElementById('fileInput').addEventListener('click', () => {
 
 const remove = document.getElementById('remove');
 remove.addEventListener('click', async function () {
-    await DeviceManager.removeWidevineDevice(wvd_combobox.options[wvd_combobox.selectedIndex]?.text || "");
-    wvd_combobox.innerHTML = '';
+    await DeviceManager.removeWidevineDevice(wvdCombobox.options[wvdCombobox.selectedIndex]?.text || "");
+    wvdCombobox.innerHTML = '';
     await DeviceManager.loadSetAllWidevineDevices();
     applyConfig();
 });
 
 const download = document.getElementById('download');
 download.addEventListener('click', async function () {
-    const widevine_device = wvd_combobox.options[wvd_combobox.selectedIndex]?.text;
-    if (!widevine_device) {
+    const widevineDevice = wvdCombobox.options[wvdCombobox.selectedIndex]?.text;
+    if (!widevineDevice) {
         return;
     }
     SettingsManager.downloadFile(
-        base64toUint8Array(await DeviceManager.loadWidevineDevice(widevine_device)),
-        widevine_device + ".wvd"
+        base64toUint8Array(await DeviceManager.loadWidevineDevice(widevineDevice)),
+        widevineDevice + ".wvd"
     )
 });
-// =================================================
+// #endregion Widevine Device
 
-// ================ Remote CDM ================
+// #region Remote CDM
 [
     document.getElementById('remoteInput'),
     document.getElementById('prRemoteInput')
@@ -170,17 +178,17 @@ download.addEventListener('click', async function () {
     });
 });
 
-const remote_remove = document.getElementById('remoteRemove');
-remote_remove.addEventListener('click', async function() {
-    await RemoteCDMManager.removeRemoteCDM(remote_combobox.options[remote_combobox.selectedIndex]?.text || "");
-    remote_combobox.innerHTML = '';
+const remoteRemove = document.getElementById('remoteRemove');
+remoteRemove.addEventListener('click', async function() {
+    await RemoteCDMManager.removeRemoteCDM(remoteCombobox.options[remoteCombobox.selectedIndex]?.text || "");
+    remoteCombobox.innerHTML = '';
     await RemoteCDMManager.loadSetWVRemoteCDMs();
     applyConfig();
 });
-const pr_remote_remove = document.getElementById('prRemoteRemove');
-pr_remote_remove.addEventListener('click', async function() {
-    await RemoteCDMManager.removeRemoteCDM(pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text || "");
-    pr_remote_combobox.innerHTML = '';
+const prRemoteRemove = document.getElementById('prRemoteRemove');
+prRemoteRemove.addEventListener('click', async function() {
+    await RemoteCDMManager.removeRemoteCDM(prRemoteCombobox.options[prRemoteCombobox.selectedIndex]?.text || "");
+    prRemoteCombobox.innerHTML = '';
     await RemoteCDMManager.loadSetPRRemoteCDMs();
     applyConfig();
 });
@@ -192,25 +200,25 @@ async function downloadRemote(remoteCdmName) {
     }
     SettingsManager.downloadFile(new TextEncoder().encode(remoteCdm), remoteCdmName + ".json");
 }
-const remote_download = document.getElementById('remoteDownload');
-remote_download.addEventListener('click', async function() {
-    const remote_cdm = remote_combobox.options[remote_combobox.selectedIndex]?.text;
-    if (!remote_cdm) {
+const remoteDownload = document.getElementById('remoteDownload');
+remoteDownload.addEventListener('click', async function() {
+    const remoteCdm = remoteCombobox.options[remoteCombobox.selectedIndex]?.text;
+    if (!remoteCdm) {
         return;
     }
-    downloadRemote(remote_cdm);
+    downloadRemote(remoteCdm);
 });
-const pr_remote_download = document.getElementById('prRemoteDownload');
-pr_remote_download.addEventListener('click', async function() {
-    const remote_cdm = pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text;
-    if (!remote_cdm) {
+const prRemoteDownload = document.getElementById('prRemoteDownload');
+prRemoteDownload.addEventListener('click', async function() {
+    const remoteCdm = prRemoteCombobox.options[prRemoteCombobox.selectedIndex]?.text;
+    if (!remoteCdm) {
         return;
     }
-    downloadRemote(remote_cdm);
+    downloadRemote(remoteCdm);
 });
-// ============================================
+// #endregion Remote CDM
 
-// ================ Playready Device ================
+// #region Playready Device
 document.getElementById('prdInput').addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: "OPEN_PICKER_PRD" });
     window.close();
@@ -218,81 +226,84 @@ document.getElementById('prdInput').addEventListener('click', () => {
 
 const prdRemove = document.getElementById('prdRemove');
 prdRemove.addEventListener('click', async function() {
-    await PRDeviceManager.removePlayreadyDevice(prd_combobox.options[prd_combobox.selectedIndex]?.text || "");
-    prd_combobox.innerHTML = '';
+    await PRDeviceManager.removePlayreadyDevice(prdCombobox.options[prdCombobox.selectedIndex]?.text || "");
+    prdCombobox.innerHTML = '';
     await PRDeviceManager.loadSetAllPlayreadyDevices();
     applyConfig();
 });
 
 const prdDownload = document.getElementById('prdDownload');
 prdDownload.addEventListener('click', async function() {
-    const playready_device = prd_combobox.options[prd_combobox.selectedIndex]?.text;
-    if (!playready_device) {
+    const playreadyDevice = prdCombobox.options[prdCombobox.selectedIndex]?.text;
+    if (!playreadyDevice) {
         return;
     }
     SettingsManager.downloadFile(
-        base64toUint8Array(await PRDeviceManager.loadPlayreadyDevice(playready_device)),
-        playready_device + ".prd"
+        base64toUint8Array(await PRDeviceManager.loadPlayreadyDevice(playreadyDevice)),
+        playreadyDevice + ".prd"
     )
 });
-// ==================================================
+// #endregion Playready Device
 
-// ================ Custom Handlers ================
-const custom_combobox = document.getElementById('custom-combobox');
-const custom_desc = document.getElementById('custom-desc');
-const pr_custom_combobox = document.getElementById('pr-custom-combobox');
-const pr_custom_desc = document.getElementById('pr-custom-desc');
-custom_combobox.addEventListener('change', function () {
-    custom_desc.textContent = CustomHandlers[custom_combobox.value].description;
+// #region Custom Handlers
+const customCombobox = document.getElementById('custom-combobox');
+const customDesc = document.getElementById('custom-desc');
+const prCustomCombobox = document.getElementById('pr-custom-combobox');
+const prCustomDesc = document.getElementById('pr-custom-desc');
+customCombobox.addEventListener('change', function () {
+    customDesc.textContent = CustomHandlers[customCombobox.value].description;
     applyConfig();
 });
-pr_custom_combobox.addEventListener('change', function () {
-    pr_custom_desc.textContent = CustomHandlers[pr_custom_combobox.value].description;
+prCustomCombobox.addEventListener('change', function () {
+    prCustomDesc.textContent = CustomHandlers[prCustomCombobox.value].description;
     applyConfig();
 });
-// =================================================
+// #endregion Custom Handlers
 
-// ================ Command Options ================
-const decryptionEngineGroup = document.getElementById('decryption-engine-group');
-const engineShaka = document.getElementById('engine-shaka');
+// #region Command Options
+const decryptionEngineSelect = document.getElementById('decryption-engine-select');
+const muxerSelect = document.getElementById('muxer-select');
+const formatSelect = document.getElementById('format-select');
+const videoStreamSelect = document.getElementById('video-stream-select');
+const audioAllCheckbox = document.getElementById('audio-all');
+const subsAllCheckbox = document.getElementById('subs-all');
 
-const downloader_name = document.getElementById('downloader-name');
-downloader_name.addEventListener('input', async function (event){
+const downloaderName = document.getElementById('downloader-name');
+downloaderName.addEventListener('input', async function (event){
     console.log("input change", event);
-    await SettingsManager.saveExecutableName(downloader_name.value);
+    await SettingsManager.saveExecutableName(downloaderName.value);
 });
-// =================================================
+// #endregion Command Options
 
-// ================ Keys ================
+// #region Keys
 const clear = document.getElementById('clear');
 clear.addEventListener('click', async function() {
     chrome.runtime.sendMessage({ type: "CLEAR" });
     chrome.storage.local.clear();
-    key_container.innerHTML = "";
+    keyContainer.innerHTML = "";
 });
 
-async function createCommand(json, key_string, title) {
+async function createCommand(json, keyString, title) {
     const metadata = JSON.parse(json);
-    const header_string = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
+    const headerString = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
 
     // Get selected decryption engine
-    const engine = document.querySelector('input[name="decryption-engine"]:checked').value;
-    let engineArg = `--decryption-engine ${engine}`;
+    let engineArg = `--decryption-engine ${decryptionEngineSelect.value}`;
 
     // Get selected muxer and format, combine as required
-    const muxer = document.querySelector('input[name="muxer"]:checked').value;
-    const format = document.querySelector('input[name="format"]:checked').value;
+    const muxer = muxerSelect.value;
+    const format = formatSelect.value;
     let formatMuxerArg = `-M format=${format}:muxer=${muxer}`;
 
     // Stream options
     let streamArgs = [];
-    const videoStream = document.querySelector('input[name="video-stream"]:checked').value;
+    const videoStream = videoStreamSelect.value;
     if (videoStream === "best") streamArgs.push('-sv best');
     if (videoStream === "1080") streamArgs.push('-sv res="1080*"');
-    if (document.getElementById('audio-all').checked) streamArgs.push('-sa all');
-    if (document.getElementById('subs-all').checked) streamArgs.push('-ss all');
+    if (audioAllCheckbox.checked) streamArgs.push('-sa all');
+    if (subsAllCheckbox.checked) streamArgs.push('-ss all');
 
-    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${header_string} ${key_string} ${engineArg} ${formatMuxerArg} ${streamArgs.join(' ')}${title ? ` --save-name "${title}"` : ""}`.trim();
+    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${headerString} ${keyString} ${engineArg} ${formatMuxerArg} ${streamArgs.join(' ')}${title ? ` --save-name "${title}"` : ""}`.trim();
 }
 
 function getFriendlyType(type) {
@@ -309,9 +320,9 @@ function getFriendlyType(type) {
 }
 
 async function appendLog(result, testDuplicate) {
-    const key_string = result.keys.map(key => `--key ${key.kid}:${key.k}`).join(' ');
+    const keyString = result.keys.map(key => `--key ${key.kid}:${key.k}`).join(' ');
     const date = new Date(result.timestamp * 1000);
-    const date_string = date.toLocaleString();
+    const dateString = date.toLocaleString();
 
     const logContainer = document.createElement('div');
     logContainer.classList.add('log-container');
@@ -335,10 +346,10 @@ async function appendLog(result, testDuplicate) {
                 ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box pssh-box" value='${escapeHTML(pssh)}'>
             </label>
             <label class="expanded-only right-bound key-copy">
-                <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box" value="${key_string}">
+                <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box" value="${keyString}">
             </label>
             <label class="expanded-only right-bound">
-                Date:<input type="text" class="text-box" value="${date_string}">
+                Date:<input type="text" class="text-box" value="${dateString}">
             </label>
             <label class="expanded-only right-bound">
                 Persist:<input type="text" class="text-box" value="${result.sessionId ? ((result.removed ? 'Removed' : 'Yes') + ` (Session ID: ${escapeHTML(result.sessionId)})`) : 'No'}">
@@ -353,7 +364,7 @@ async function appendLog(result, testDuplicate) {
 
     const keysInput = logContainer.querySelector('.key-copy');
     keysInput.addEventListener('click', () => {
-        navigator.clipboard.writeText(key_string);
+        navigator.clipboard.writeText(keyString);
     });
 
     if (result.manifests.length > 0) {
@@ -361,21 +372,21 @@ async function appendLog(result, testDuplicate) {
 
         const select = logContainer.querySelector("#manifest");
         select.addEventListener('change', async () => {
-            command.value = await createCommand(select.value, key_string, result.title);
+            command.value = await createCommand(select.value, keyString, result.title);
         });
         result.manifests.forEach((manifest) => {
             const option = new Option(`[${manifest.type}] ${manifest.url}`, JSON.stringify(manifest));
             select.add(option);
         });
-        command.value = await createCommand(select.value, key_string, result.title);
+        command.value = await createCommand(select.value, keyString, result.title);
 
-        const manifest_copy = logContainer.querySelector('.manifest-copy');
-        manifest_copy.addEventListener('click', () => {
+        const manifestCopy = logContainer.querySelector('.manifest-copy');
+        manifestCopy.addEventListener('click', () => {
             navigator.clipboard.writeText(JSON.parse(select.value).url);
         });
 
-        const command_copy = logContainer.querySelector('.command-copy');
-        command_copy.addEventListener('click', () => {
+        const commandCopy = logContainer.querySelector('.command-copy');
+        commandCopy.addEventListener('click', () => {
             navigator.clipboard.writeText(command.value);
         });
     }
@@ -408,7 +419,7 @@ async function appendLog(result, testDuplicate) {
 
     // Remote duplicate existing entry
     if (testDuplicate) {
-        const logContainers = key_container.querySelectorAll('.log-container');
+        const logContainers = keyContainer.querySelectorAll('.log-container');
         logContainers.forEach(container => {
             if (result.sessionId) {
                 if (container.dataset.sessionId === result.sessionId) {
@@ -425,7 +436,7 @@ async function appendLog(result, testDuplicate) {
     logContainer.dataset.pssh = pssh;
     logContainer.dataset.sessionId = result.sessionId || "";
 
-    key_container.appendChild(logContainer);
+    keyContainer.appendChild(logContainer);
 
     updateIcon();
 }
@@ -444,7 +455,9 @@ async function checkLogs() {
         await appendLog(result, false);
     });
 }
+// #endregion Keys
 
+// #region Initialization and Config Management
 async function loadConfig(scope = "global") {
     const profileConfig = await SettingsManager.getProfile(scope);
     enabled.checked = await SettingsManager.getGlobalEnabled() && profileConfig.enabled;
@@ -469,16 +482,16 @@ async function loadConfig(scope = "global") {
 
 async function applyConfig() {
     const scope = siteScopeLabel.dataset.hostOverride || (toggle.checked ? new URL(currentTab.url).host : "global");
-    const wvType = wvd_select.checked ? "local" : (remote_select.checked ? "remote" : "custom");
-    const prType = prd_select.checked ? "local" : (pr_remote_select.checked ? "remote" : "custom");
+    const wvType = wvdSelect.checked ? "local" : (remoteSelect.checked ? "remote" : "custom");
+    const prType = prdSelect.checked ? "local" : (prRemoteSelect.checked ? "remote" : "custom");
     const config = {
         "enabled": enabled.checked,
         "widevine": {
             "enabled": wvEnabled.checked,
             "device": {
-                "local": wvd_combobox.options[wvd_combobox.selectedIndex]?.text || null,
-                "remote": remote_combobox.options[remote_combobox.selectedIndex]?.text || null,
-                "custom": custom_combobox.value
+                "local": wvdCombobox.options[wvdCombobox.selectedIndex]?.text || null,
+                "remote": remoteCombobox.options[remoteCombobox.selectedIndex]?.text || null,
+                "custom": customCombobox.value
             },
             "type": wvType,
             "serverCert": wvServerCert.value
@@ -486,9 +499,9 @@ async function applyConfig() {
         "playready": {
             "enabled": prEnabled.checked,
             "device": {
-                "local": prd_combobox.options[prd_combobox.selectedIndex]?.text || null,
-                "remote": pr_remote_combobox.options[pr_remote_combobox.selectedIndex]?.text || null,
-                "custom": pr_custom_combobox.value
+                "local": prdCombobox.options[prdCombobox.selectedIndex]?.text || null,
+                "remote": prRemoteCombobox.options[prRemoteCombobox.selectedIndex]?.text || null,
+                "custom": prCustomCombobox.value
             },
             "type": prType
         },
@@ -570,12 +583,19 @@ document.addEventListener('DOMContentLoaded', async function () {
             siteScopeLabel.textContent = "<no origin>";
             toggle.disabled = true;
         }
-        downloader_name.value = await SettingsManager.getExecutableName();
+        downloaderName.value = await SettingsManager.getExecutableName();
         await restoreCommandOptions();
         CustomHandlerManager.loadSetAllCustomHandlers();
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();
         await PRDeviceManager.loadSetAllPlayreadyDevices();
+        const { devicesCollapsed, commandsCollapsed } = await SettingsManager.getUICollapsed();
+        if (!devicesCollapsed) {
+            main.open = true;
+        }
+        if (!commandsCollapsed) {
+            commandOptions.open = true;
+        }
         checkLogs();
         loadConfig(host);
     } catch (e) {
@@ -589,19 +609,19 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 });
-// ======================================
+// #endregion Initialization and Config Management
 
-// --- Command Option Persistence ---
+// #region Command Options
 
 // Helper: Save all command option settings
 async function saveCommandOptions() {
     const opts = {
-        decryptionEngine: document.querySelector('input[name="decryption-engine"]:checked')?.value,
-        muxer: document.querySelector('input[name="muxer"]:checked')?.value,
-        format: document.querySelector('input[name="format"]:checked')?.value,
-        videoStream: document.querySelector('input[name="video-stream"]:checked')?.value,
-        audioAll: document.getElementById('audio-all').checked,
-        subsAll: document.getElementById('subs-all').checked
+        decryptionEngine: decryptionEngineSelect.value,
+        muxer: muxerSelect.value,
+        format: formatSelect.value,
+        videoStream: videoStreamSelect.value,
+        audioAll: audioAllCheckbox.checked,
+        subsAll: subsAllCheckbox.checked
     };
     await SettingsManager.saveCommandOptions(opts);
 }
@@ -609,36 +629,24 @@ async function saveCommandOptions() {
 // Helper: Restore all command option settings
 async function restoreCommandOptions() {
     const opts = await SettingsManager.getCommandOptions?.() || {};
-    if (opts.decryptionEngine) {
-        const radio = document.querySelector(`input[name="decryption-engine"][value="${opts.decryptionEngine}"]`);
-        if (radio) radio.checked = true;
-    }
-    if (opts.muxer) {
-        const radio = document.querySelector(`input[name="muxer"][value="${opts.muxer}"]`);
-        if (radio) radio.checked = true;
-    }
-    if (opts.format) {
-        const radio = document.querySelector(`input[name="format"][value="${opts.format}"]`);
-        if (radio) radio.checked = true;
-    }
-    if (opts.videoStream) {
-        const radio = document.querySelector(`input[name="video-stream"][value="${opts.videoStream}"]`);
-        if (radio) radio.checked = true;
-    }
-    document.getElementById('audio-all').checked = !!opts.audioAll;
-    document.getElementById('subs-all').checked = !!opts.subsAll;
+    decryptionEngineSelect.value = opts.decryptionEngine || 'SHAKA_PACKAGER';
+    muxerSelect.value = opts.muxer || 'ffmpeg';
+    formatSelect.value = opts.format || 'mp4';
+    videoStreamSelect.value = opts.videoStream || 'best';
+    audioAllCheckbox.checked = !!opts.audioAll;
+    subsAllCheckbox.checked = !!opts.subsAll;
 }
 
 // Add event listeners to save on change
 [
-    ...document.querySelectorAll('input[name="decryption-engine"]'),
-    ...document.querySelectorAll('input[name="muxer"]'),
-    ...document.querySelectorAll('input[name="format"]'),
-    ...document.querySelectorAll('input[name="video-stream"]'),
-    document.getElementById('audio-all'),
-    document.getElementById('subs-all')
+    decryptionEngineSelect,
+    muxerSelect,
+    formatSelect,
+    videoStreamSelect,
+    audioAllCheckbox,
+    subsAllCheckbox
 ].forEach(elem => {
     elem.addEventListener('change', saveCommandOptions);
 });
 
-// --- END Command Option Persistence ---
+// #endregion Command Options

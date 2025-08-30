@@ -4,14 +4,12 @@ body {
     color: black;
     width: 400px;
     overflow-x: hidden;
+    overflow-y: scroll;
     user-select: none;
     font-size: 13px;
 }
 .toggleButton {
     width: 24px;
-}
-select {
-    max-width: 330px;
 }
 .text-box {
     outline: none;
@@ -215,13 +213,20 @@ h1 {
     display: block;
 }
 
-#wvd > *, #remote > *, #custom > *,
-#prd > *, #pr-remote > *, #pr-custom > * {
-    margin: 5px;
+.device-fieldset button {
+    margin-right: 5px;
+}
+
+.device-fieldset select {
+    margin-top: 5px;
 }
 
 select[id*="-combobox"] {
     width: 100%;
+}
+
+#command-options fieldset > div {
+    margin-bottom: 5px;
 }
 
 .log-container {

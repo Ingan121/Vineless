@@ -96,13 +96,13 @@ export class DeviceManager {
     }
 
     static setWidevineDevice(name, value){
-        const wvd_combobox = document.getElementById('wvd-combobox');
-        const wvd_element = document.createElement('option');
+        const wvdCombobox = document.getElementById('wvd-combobox');
+        const wvdElement = document.createElement('option');
 
-        wvd_element.text = name;
-        wvd_element.value = value;
+        wvdElement.text = name;
+        wvdElement.value = value;
 
-        wvd_combobox.appendChild(wvd_element);
+        wvdCombobox.appendChild(wvdElement);
     }
 
     static async loadSetAllWidevineDevices() {
@@ -159,13 +159,13 @@ export class PRDeviceManager {
     }
 
     static setPlayreadyDevice(name, value){
-        const prd_combobox = document.getElementById('prd-combobox');
-        const prd_element = document.createElement('option');
+        const prdCombobox = document.getElementById('prd-combobox');
+        const prdElement = document.createElement('option');
 
-        prd_element.text = name;
-        prd_element.value = value;
+        prdElement.text = name;
+        prdElement.value = value;
 
-        prd_combobox.appendChild(prd_element);
+        prdCombobox.appendChild(prdElement);
     }
 
     static async loadSetAllPlayreadyDevices() {
@@ -222,20 +222,20 @@ export class RemoteCDMManager {
     }
 
     static setRemoteCDM(name, value, only) {
-        const remote_combobox = document.getElementById('remote-combobox');
-        const pr_remote_combobox = document.getElementById('pr-remote-combobox');
-        const remote_element = document.createElement('option');
+        const remoteCombobox = document.getElementById('remote-combobox');
+        const prRemoteCombobox = document.getElementById('pr-remote-combobox');
+        const remoteElement = document.createElement('option');
 
-        remote_element.text = name;
-        remote_element.value = value;
+        remoteElement.text = name;
+        remoteElement.value = value;
 
         const parsed = JSON.parse(value);
         const type = parsed.type || "WIDEVINE";
         if (only && type !== only) return;
         if (type === "PLAYREADY") {
-            pr_remote_combobox.appendChild(remote_element);
+            prRemoteCombobox.appendChild(remoteElement);
         } else {
-            remote_combobox.appendChild(remote_element);
+            remoteCombobox.appendChild(remoteElement);
         }
     }
 
@@ -309,12 +309,12 @@ export class RemoteCDMManager {
 
 export class CustomHandlerManager {
     static loadSetAllCustomHandlers() {
-        const custom_select = document.getElementById('custom_select');
-        const custom_combobox = document.getElementById('custom-combobox');
-        const custom_desc = document.getElementById('custom-desc');
-        const pr_custom_select = document.getElementById('pr_custom_select');
-        const pr_custom_combobox = document.getElementById('pr-custom-combobox');
-        const pr_custom_desc = document.getElementById('pr-custom-desc');
+        const customSelect = document.getElementById('customSelect');
+        const customCombobox = document.getElementById('custom-combobox');
+        const customDesc = document.getElementById('custom-desc');
+        const prCustomSelect = document.getElementById('prCustomSelect');
+        const prCustomCombobox = document.getElementById('pr-custom-combobox');
+        const prCustomDesc = document.getElementById('pr-custom-desc');
 
         for (const handler in CustomHandlers) {
             if (CustomHandlers[handler].disabled) {
@@ -324,17 +324,17 @@ export class CustomHandlerManager {
             option.text = CustomHandlers[handler].name;
             option.value = handler;
             if (["widevine", undefined].includes(CustomHandlers[handler].for)) {
-                custom_combobox.appendChild(option);
-                custom_select.classList.remove('hidden');
+                customCombobox.appendChild(option);
+                customSelect.classList.remove('hidden');
             }
             if (["playready", undefined].includes(CustomHandlers[handler].for)) {
-                pr_custom_combobox.appendChild(option.cloneNode(true));
-                pr_custom_select.classList.remove('hidden');
+                prCustomCombobox.appendChild(option.cloneNode(true));
+                prCustomSelect.classList.remove('hidden');
             }
         }
 
-        custom_desc.innerHTML = CustomHandlers[custom_combobox.value]?.description || "";
-        pr_custom_desc.innerHTML = CustomHandlers[pr_custom_combobox.value]?.description || "";
+        customDesc.innerHTML = CustomHandlers[customCombobox.value]?.description || "";
+        prCustomDesc.innerHTML = CustomHandlers[prCustomCombobox.value]?.description || "";
     }
 
     static selectCustomHandler(name) {
@@ -438,17 +438,17 @@ export class SettingsManager {
                 const result = loaded.target.result;
 
                 try {
-                    const widevine_device = new WidevineDevice(result);
-                    const b64_device = uint8ArrayToBase64(new Uint8Array(result));
-                    const device_name = widevine_device.get_name();
+                    const widevineDevice = new WidevineDevice(result);
+                    const b64Device = uint8ArrayToBase64(new Uint8Array(result));
+                    const deviceName = widevineDevice.getName();
 
-                    if (!await DeviceManager.loadWidevineDevice(device_name) ||
-                        (window.resizeTo(800, 600), window.confirm(`Widevine device "${device_name}" already exists. Overwrite?`))
+                    if (!await DeviceManager.loadWidevineDevice(deviceName) ||
+                        (window.resizeTo(800, 600), window.confirm(`Widevine device "${deviceName}" already exists. Overwrite?`))
                     ) {
-                        await DeviceManager.saveWidevineDevice(device_name, b64_device);
+                        await DeviceManager.saveWidevineDevice(deviceName, b64Device);
                     }
 
-                    await DeviceManager.saveGlobalSelectedWidevineDevice(device_name);
+                    await DeviceManager.saveGlobalSelectedWidevineDevice(deviceName);
                     resolve();
                 } catch (error) {
                     reject(error);
@@ -468,27 +468,27 @@ export class SettingsManager {
                 const result = loaded.target.result;
 
                 try {
-                    const json_file = JSON.parse(result);
+                    const jsonFile = JSON.parse(result);
 
-                    if (!json_file.host && !json_file.sg_api_conf) {
+                    if (!jsonFile.host && !jsonFile.sg_api_conf) {
                         throw new Error("Invalid remote CDM file: missing host on non-SuperGeneric device");
                     }
 
-                    console.log("LOADED DEVICE:", json_file);
-                    const remote_cdm = new RemoteCdm(json_file);
-                    const device_name = remote_cdm.getName();
-                    console.log("NAME:", device_name);
+                    console.log("LOADED DEVICE:", jsonFile);
+                    const remoteCdm = new RemoteCdm(jsonFile);
+                    const deviceName = remoteCdm.getName();
+                    console.log("NAME:", deviceName);
 
-                    if (await RemoteCDMManager.loadRemoteCDM(device_name) === "{}" ||
-                        (window.resizeTo(800, 600), window.confirm(`Remote CDM "${device_name}" already exists. Overwrite?`))
+                    if (await RemoteCDMManager.loadRemoteCDM(deviceName) === "{}" ||
+                        (window.resizeTo(800, 600), window.confirm(`Remote CDM "${deviceName}" already exists. Overwrite?`))
                     ) {
-                        await RemoteCDMManager.saveRemoteCDM(device_name, json_file);
+                        await RemoteCDMManager.saveRemoteCDM(deviceName, jsonFile);
                     }
 
-                    if (json_file.type === "PLAYREADY") {
-                        await RemoteCDMManager.saveGlobalSelectedPRRemoteCDM(device_name);
+                    if (jsonFile.type === "PLAYREADY") {
+                        await RemoteCDMManager.saveGlobalSelectedPRRemoteCDM(deviceName);
                     } else {
-                        await RemoteCDMManager.saveGlobalSelectedRemoteCDM(device_name);
+                        await RemoteCDMManager.saveGlobalSelectedRemoteCDM(deviceName);
                     }
                     resolve();
                 } catch (error) {
@@ -510,16 +510,16 @@ export class SettingsManager {
 
                 try {
                     new PlayReadyDevice(new Uint8Array(result)); // Test if valid PlayReady device
-                    const b64_device = uint8ArrayToBase64(new Uint8Array(result));
-                    const device_name = file.name.slice(0, -4);
+                    const b64Device = uint8ArrayToBase64(new Uint8Array(result));
+                    const deviceName = file.name.slice(0, -4);
 
-                    if (!await PRDeviceManager.loadPlayreadyDevice(device_name) || 
-                        (window.resizeTo(800, 600), window.confirm(`PlayReady device "${device_name}" already exists. Overwrite?`))
+                    if (!await PRDeviceManager.loadPlayreadyDevice(deviceName) || 
+                        (window.resizeTo(800, 600), window.confirm(`PlayReady device "${deviceName}" already exists. Overwrite?`))
                     ) {
-                        await PRDeviceManager.savePlayreadyDevice(device_name, b64_device);
+                        await PRDeviceManager.savePlayreadyDevice(deviceName, b64Device);
                     }
 
-                    await PRDeviceManager.saveGlobalSelectedPlayreadyDevice(device_name);
+                    await PRDeviceManager.saveGlobalSelectedPlayreadyDevice(deviceName);
                     resolve();
                 } catch (error) {
                     reject(error);
@@ -532,40 +532,40 @@ export class SettingsManager {
         });
     }
 
-    static setSelectedDeviceType(device_type) {
-        switch (device_type) {
+    static setSelectedDeviceType(deviceType) {
+        switch (deviceType) {
             case "local":
-                const wvd_select = document.getElementById('wvd_select');
-                wvd_select.checked = true;
+                const wvdSelect = document.getElementById('wvdSelect');
+                wvdSelect.checked = true;
                 break;
             case "remote":
-                const remote_select = document.getElementById('remote_select');
-                remote_select.checked = true;
+                const remoteSelect = document.getElementById('remoteSelect');
+                remoteSelect.checked = true;
                 break;
             case "custom":
-                const custom_select = document.getElementById('custom_select');
-                custom_select.checked = true;
+                const customSelect = document.getElementById('customSelect');
+                customSelect.checked = true;
         }
     }
 
-    static setSelectedPRDeviceType(device_type) {
-        switch (device_type) {
+    static setSelectedPRDeviceType(deviceType) {
+        switch (deviceType) {
             case "local":
-                const prd_select = document.getElementById('prd_select');
-                prd_select.checked = true;
+                const prdSelect = document.getElementById('prdSelect');
+                prdSelect.checked = true;
                 break;
             case "remote":
-                const remote_select = document.getElementById('pr_remote_select');
-                remote_select.checked = true;
+                const remoteSelect = document.getElementById('prRemoteSelect');
+                remoteSelect.checked = true;
                 break;
             case "custom":
-                const custom_select = document.getElementById('pr_custom_select');
-                custom_select.checked = true;
+                const customSelect = document.getElementById('prCustomSelect');
+                customSelect.checked = true;
         }
     }
 
-    static async saveExecutableName(exe_name) {
-        await AsyncSyncStorage.setStorage({ exe_name: exe_name });
+    static async saveExecutableName(exeName) {
+        await AsyncSyncStorage.setStorage({ exe_name: exeName });
     }
 
     static async getExecutableName() {
@@ -576,9 +576,20 @@ export class SettingsManager {
     static async saveCommandOptions(opts) {
         await AsyncSyncStorage.setStorage({ commandOptions: opts });
     }
+
     static async getCommandOptions() {
         const result = await AsyncSyncStorage.getStorage(['commandOptions']);
         return result.commandOptions || {};
+    }
+
+    static async getUICollapsed() {
+        const result = await AsyncSyncStorage.getStorage(['uiCollapsed']);
+        return result.uiCollapsed || { devicesCollapsed: false, commandsCollapsed: true };
+    }
+
+    static async setUICollapsed(devicesCollapsed, commandsCollapsed) {
+        const value = { devicesCollapsed, commandsCollapsed };
+        await AsyncSyncStorage.setStorage({ uiCollapsed: value });
     }
 }
 
@@ -652,8 +663,8 @@ export function uint8ArrayToBase64(uint8array) {
     return btoa(String.fromCharCode.apply(null, uint8array));
 }
 
-export function base64toUint8Array(base64_string){
-    return Uint8Array.from(atob(base64_string), c => c.charCodeAt(0))
+export function base64toUint8Array(base64String){
+    return Uint8Array.from(atob(base64String), c => c.charCodeAt(0))
 }
 
 export function stringToUint8Array(string) {

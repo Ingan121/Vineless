@@ -101,7 +101,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     const { keySystem, sessionId, initDataType, initData, serverCert } = parsed;
                     let device = null;
                     let pssh = initData;
-                    const extra = { tab: sender.tab };
+                    const extra = {};
                     if (initDataType === "webm") {
                         const kidHex = uint8ArrayToHex(base64toUint8Array(initData));
                         // Find first log that contains the requested KID
@@ -186,7 +186,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                     if (device) {
                         try {
-                            const instance = new device(host, keySystem, sessionId);
+                            const instance = new device(host, keySystem, sessionId, sender.tab);
                             const res = await instance.generateChallenge(pssh, extra);
                             sessions.set(sessionId, instance);
                             if (res.challenge) {

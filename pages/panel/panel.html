@@ -17,47 +17,48 @@
         </div>
         <p id="version">v1.x</p>
     </div>
-    <details id="main" class="collapsible-section" data-wv-type="local" data-pr-type="local">
-        <summary id="main-summary">Settings</summary>
-            <!-- Enabled -->
-            <div>
-                <input type="checkbox" id="enabled">
-                <label for="enabled"> Enabled</label>
-            </div>
-            <div id="scopeToggleArea">
-                <label id="globalScopeLabel" class="scopeLabel">Global</label>
-                <label class="switch">
-                    <input type="checkbox" id="scopeToggle">
-                    <span class="slider"></span>
-                </label>
-                <div id="siteScopeArea">
-                    <label id="siteScopeLabel" class="scopeLabel" title="Click this to manage profile for other sites">This site</label>
-                    <input id="scopeInput" type="text">
-                </div>
-            </div>
-            <button id="reload" class="hidden">Reload tab</button>
+    <fieldset id="settings">
+        <legend>Settings</legend>
+        <div>
+            <input type="checkbox" id="enabled">
+            <label for="enabled"> Enabled</label>
         </div>
+        <div id="scopeToggleArea">
+            <label id="globalScopeLabel" class="scopeLabel">Global</label>
+            <label class="switch">
+                <input type="checkbox" id="scopeToggle">
+                <span class="slider"></span>
+            </label>
+            <div id="siteScopeArea">
+                <label id="siteScopeLabel" class="scopeLabel" title="Click this to manage profile for other sites">This site</label>
+                <input id="scopeInput" type="text">
+            </div>
+        </div>
+        <button id="reload" class="hidden">Reload tab</button>
+    </fieldset>
+    <details id="main" class="collapsible-section" data-wv-type="local" data-pr-type="local">
+        <summary id="main-summary">Systems & Devices</summary>
         <fieldset id="systems">
             <legend>Systems</legend>
             <div class="flex">
                 <input type="checkbox" id="wvEnabled" name="wvEnabled" checked>
                 <label for="wvEnabled">Widevine</label>
-                <input type="radio" id="wvd_select" name="cdm_type" value="local" checked>
-                <label for="wvd_select">Local</label>
-                <input type="radio" id="remote_select" name="cdm_type" value="remote">
-                <label for="remote_select">Remote</label>
-                <input type="radio" id="custom_select" name="cdm_type" value="custom" class="hidden">
-                <label for="custom_select">Custom</label>
+                <input type="radio" id="wvdSelect" name="cdmType" value="local" checked>
+                <label for="wvdSelect">Local</label>
+                <input type="radio" id="remoteSelect" name="cdmType" value="remote">
+                <label for="remoteSelect">Remote</label>
+                <input type="radio" id="customSelect" name="cdmType" value="custom" class="hidden">
+                <label for="customSelect">Custom</label>
             </div>
             <div>
                 <input type="checkbox" id="prEnabled" name="prEnabled" checked>
                 <label for="prEnabled">PlayReady</label>
-                <input type="radio" id="prd_select" name="pr_cdm_type" value="local" checked>
-                <label for="prd_select">Local</label>
-                <input type="radio" id="pr_remote_select" name="pr_cdm_type" value="remote">
-                <label for="pr_remote_select">Remote</label>
-                <input type="radio" id="pr_custom_select" name="pr_cdm_type" value="custom" class="hidden">
-                <label for="pr_custom_select">Custom</label>
+                <input type="radio" id="prdSelect" name="prCdmType" value="local" checked>
+                <label for="prdSelect">Local</label>
+                <input type="radio" id="prRemoteSelect" name="prCdmType" value="remote">
+                <label for="prRemoteSelect">Remote</label>
+                <input type="radio" id="prCustomSelect" name="prCdmType" value="custom" class="hidden">
+                <label for="prCustomSelect">Custom</label>
             </div>
             <div id="systemsBottomArea">
                 <div>
@@ -74,7 +75,7 @@
                 <label for="allowPersistence">Allow persistent licenses</label>
             </div>
             <div>
-                Widevine server certificate usage:
+                <label>Widevine server certificate usage:</label>
                 <select id="wv-server-cert">
                     <option value="always">Always</option>
                     <option value="if_provided" selected>If Provided</option>
@@ -82,102 +83,88 @@
                 </select>
             </div>
         </fieldset>
-        <fieldset id="wvd">
+        <fieldset id="wvd" class="device-fieldset">
             <legend>Widevine Local</legend>
             <button type="button" id="fileInput">Choose File</button>
             <button type="button" id="remove">Remove</button>
             <button type="button" id="download">Download</button><br>
-            <label>
-                <select id="wvd-combobox"></select>
-            </label>
+            <select id="wvd-combobox"></select>
         </fieldset>
-        <fieldset id="remote">
+        <fieldset id="remote" class="device-fieldset">
             <legend>Widevine Remote</legend>
             <button type="button" id="remoteInput">Choose File</button>
             <button type="button" id="remoteRemove">Remove</button>
             <button type="button" id="remoteDownload">Download</button><br>
-            <label>
-                <select id="remote-combobox"></select>
-            </label>
+            <select id="remote-combobox"></select>
         </fieldset>
-        <fieldset id="custom">
+        <fieldset id="custom" class="device-fieldset">
             <legend>Widevine Custom</legend>
-            <label>
-                <select id="custom-combobox"></select>
-            </label>
+            <select id="custom-combobox"></select>
             <p id="custom-desc"></p>
         </fieldset>
-        <fieldset id="prd">
+        <fieldset id="prd" class="device-fieldset">
             <legend>PlayReady Local</legend>
             <button type="button" id="prdInput">Choose File</button>
             <button type="button" id="prdRemove">Remove</button>
             <button type="button" id="prdDownload">Download</button><br>
-            <label>
-                <select id="prd-combobox"></select>
-            </label>
+            <select id="prd-combobox"></select>
         </fieldset>
-        <fieldset id="pr-remote">
+        <fieldset id="pr-remote" class="device-fieldset">
             <legend>PlayReady Remote</legend>
             <button type="button" id="prRemoteInput">Choose File</button>
             <button type="button" id="prRemoteRemove">Remove</button>
             <button type="button" id="prRemoteDownload">Download</button><br>
-            <label>
-                <select id="pr-remote-combobox"></select>
-            </label>
+            <select id="pr-remote-combobox"></select>
         </fieldset>
-        <fieldset id="pr-custom">
+        <fieldset id="pr-custom" class="device-fieldset">
             <legend>PlayReady Custom</legend>
-            <label>
-                <select id="pr-custom-combobox"></select>
-            </label>
+            <select id="pr-custom-combobox"></select>
             <p id="pr-custom-desc"></p>
         </fieldset>
     </details>
-    <!-- Move Command Options OUTSIDE of details -->
-    <fieldset id="command-options">
-        <legend>Command options</legend>
-        <div id="decryption-engine-group">
-            <label>Decryption Engine:</label><br>
-            <input type="radio" name="decryption-engine" id="engine-shaka" value="SHAKA_PACKAGER" checked>
-            <label for="engine-shaka">Shaka Packager</label>
-            <input type="radio" name="decryption-engine" id="engine-mp4decrypt" value="MP4DECRYPT">
-            <label for="engine-mp4decrypt">mp4decrypt</label>
-            <input type="radio" name="decryption-engine" id="engine-ffmpeg" value="FFMPEG">
-            <label for="engine-ffmpeg">FFmpeg</label>
-        </div>
-        <div>
-            <label>Muxer:</label><br>
-            <input type="radio" name="muxer" id="muxer-ffmpeg" value="ffmpeg" checked>
-            <label for="muxer-ffmpeg">ffmpeg</label>
-            <input type="radio" name="muxer" id="muxer-mkvmerge" value="mkvmerge">
-            <label for="muxer-mkvmerge">mkvmerge</label>
-        </div>
-        <div>
-            <label>Format:</label><br>
-            <input type="radio" name="format" id="format-mp4" value="mp4" checked>
-            <label for="format-mp4">mp4</label>
-            <input type="radio" name="format" id="format-mkv" value="mkv">
-            <label for="format-mkv">mkv</label>
-            <input type="radio" name="format" id="format-ts" value="ts">
-            <label for="format-ts">ts</label>
-        </div>
-        <div>
-            <label>Video Stream:</label><br>
-            <input type="radio" name="video-stream" id="video-best" value="best" checked>
-            <label for="video-best">Best available video</label>
-            <input type="radio" name="video-stream" id="video-1080" value="1080">
-            <label for="video-1080">1080p video</label>
-        </div>
-        <div>
-            <label>Audio & Subtitle Streams:</label><br>
-            <input type="checkbox" id="audio-all">
-            <label for="audio-all">All audio tracks</label>
-            <input type="checkbox" id="subs-all">
-            <label for="subs-all">All subtitle tracks</label>
-        </div>
-        <label for="downloader-name">Executable name: </label>
-        <input type="text" class="text-box" id="downloader-name">
-    </fieldset>
+    <details id="command-options" class="collapsible-section">
+        <summary>Command Options</summary>
+        <fieldset>
+            <legend>Command Options</legend>
+            <div id="decryption-engine-group">
+                <label>Decryption Engine:</label>
+                <select id="decryption-engine-select">
+                    <option value="SHAKA_PACKAGER">Shaka Packager</option>
+                    <option value="MP4DECRYPT">mp4decrypt</option>
+                    <option value="FFMPEG">FFmpeg</option>
+                </select>
+            </div>
+            <div>
+                <label>Muxer:</label>
+                <select id="muxer-select">
+                    <option value="ffmpeg">ffmpeg</option>
+                    <option value="mkvmerge">mkvmerge</option>
+                </select>
+                <label>Format:</label>
+                <select id="format-select">
+                    <option value="mp4">mp4</option>
+                    <option value="mkv">mkv</option>
+                    <option value="ts">ts</option>
+                </select>
+            </div>
+            <div>
+                <label>Video Stream:</label>
+                <select id="video-stream-select">
+                    <option value="best">Best available video</option>
+                    <option value="1080">1080p video</option>
+                </select>
+            </div>
+            <div>
+                <label>Audio & Subtitle Streams:</label><br>
+                <input type="checkbox" id="audio-all">
+                <label for="audio-all">All audio tracks</label>
+                <input type="checkbox" id="subs-all">
+                <label for="subs-all">All subtitle tracks</label>
+            </div>
+            <label for="downloader-name">Executable name: </label>
+            <input type="text" class="text-box" id="downloader-name">
+        </fieldset>
+    </details>
     <fieldset>
         <legend>Keys</legend>
         <div id="keyButtons">
