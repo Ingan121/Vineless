@@ -58,6 +58,7 @@
 + The files are saved in the extension's `chrome.storage.sync` storage and will be synchronized across any browsers into which the user is signed in with their Google account.
 + The maximum number of devices is ~25 Local **OR** ~200 Remote CDMs
 + The maximum number of per-site profiles is ~200 profiles
++ Number of saved key logs is unlimited as long as your disk space allows
 
 ## Usage
 All the user has to do is to play a DRM protected video. With everything set up properly, videos will start to play even without a supported DRM system.

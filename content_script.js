@@ -569,7 +569,7 @@
                     data.serverCert = mediaKeySession._mediaKeys._emeShim.serverCert;
                 }
                 const challenge = await emitAndWaitForResponse("REQUEST", JSON.stringify(data));
-                if (!challenge || challenge === "null" || challenge === "bnVsbA==") {
+                if (!challenge) {
                     throw new Error("No challenge received from the background script");
                 }
                 const challengeBytes = base64toUint8Array(challenge);

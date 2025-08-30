@@ -84,10 +84,12 @@ a:hover {
     display: inline-block;
     direction: rtl;
     height: 15px;
-    cursor: pointer;
 }
 #siteScopeArea {
     position: relative;
+}
+#siteScopeLabel {
+    cursor: pointer;
 }
 #scopeInput {
     position: absolute;
@@ -218,6 +220,11 @@ h1 {
 }
 
 .device-fieldset select {
+    margin-top: 5px;
+}
+
+p[id*="custom-desc"] {
+    margin: 0;
     margin-top: 5px;
 }
 

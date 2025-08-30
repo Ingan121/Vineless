@@ -269,16 +269,49 @@ const audioAllCheckbox = document.getElementById('audio-all');
 const subsAllCheckbox = document.getElementById('subs-all');
 
 const downloaderName = document.getElementById('downloader-name');
-downloaderName.addEventListener('input', async function (event){
-    console.log("input change", event);
-    await SettingsManager.saveExecutableName(downloaderName.value);
+downloaderName.addEventListener('input', function () {
+    SettingsManager.saveExecutableName(downloaderName.value);
+    reloadAllCommands();
+});
+
+async function saveCommandOptions() {
+    const opts = {
+        decryptionEngine: decryptionEngineSelect.value,
+        muxer: muxerSelect.value,
+        format: formatSelect.value,
+        videoStream: videoStreamSelect.value,
+        audioAll: audioAllCheckbox.checked,
+        subsAll: subsAllCheckbox.checked
+    };
+    await SettingsManager.saveCommandOptions(opts);
+    await reloadAllCommands();
+}
+
+async function restoreCommandOptions() {
+    const opts = await SettingsManager.getCommandOptions?.() || {};
+    decryptionEngineSelect.value = opts.decryptionEngine || 'SHAKA_PACKAGER';
+    muxerSelect.value = opts.muxer || 'ffmpeg';
+    formatSelect.value = opts.format || 'mp4';
+    videoStreamSelect.value = opts.videoStream || 'best';
+    audioAllCheckbox.checked = !!opts.audioAll;
+    subsAllCheckbox.checked = !!opts.subsAll;
+}
+
+[
+    decryptionEngineSelect,
+    muxerSelect,
+    formatSelect,
+    videoStreamSelect,
+    audioAllCheckbox,
+    subsAllCheckbox
+].forEach(elem => {
+    elem.addEventListener('change', saveCommandOptions);
 });
 // #endregion Command Options
 
-// #region Keys
+// #region Logs
 const clear = document.getElementById('clear');
 clear.addEventListener('click', async function() {
-    chrome.runtime.sendMessage({ type: "CLEAR" });
     chrome.storage.local.clear();
     keyContainer.innerHTML = "";
 });
@@ -306,6 +339,19 @@ async function createCommand(json, keyString, title) {
     return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${headerString} ${keyString} ${engineArg} ${formatMuxerArg} ${streamArgs.join(' ')}${title ? ` --save-name "${title}"` : ""}`.trim();
 }
 
+async function reloadAllCommands() {
+    const logContainers = document.querySelectorAll('.log-container');
+    for (const logContainer of logContainers) {
+        const command = logContainer.querySelector('.command-box');
+        if (!command) {
+            continue;
+        }
+        const select = logContainer.querySelector(".manifest-box");
+        const key = logContainer.querySelector('.key-box');
+        command.value = await createCommand(select.value, key.value, logContainer.log.title);
+    }
+}
+
 function getFriendlyType(type) {
     switch (type) {
         case "CLEARKEY":
@@ -327,38 +373,38 @@ async function appendLog(result, testDuplicate) {
     const logContainer = document.createElement('div');
     logContainer.classList.add('log-container');
 
-    const pssh = result.pssh_data || result.wrm_header;
+    const pssh = result.pssh || result.pssh_data || result.wrm_header;
 
     logContainer.innerHTML = `
         <button class="toggleButton">+</button>
         <div class="expandableDiv collapsed">
             <a href="#" class="expanded-only removeButton">x</a>
             <label class="always-visible right-bound">
-                URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}">
+                URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}"${result.origin ? `title="Origin: ${escapeHTML(result.origin)}"` : ""} readonly>
             </label>
             <label class="expanded-only right-bound">
-                Title:<input type="text" class="text-box" value="${escapeHTML(result.title || '')}">
+                Title:<input type="text" class="text-box" value="${escapeHTML(result.title || '')}" readonly>
             </label>
             <label class="expanded-only right-bound">
-                Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}">
+                Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}" readonly>
             </label>
             <label class="expanded-only right-bound">
-                ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box pssh-box" value='${escapeHTML(pssh)}'>
+                ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box pssh-box" value="${escapeHTML(pssh)}" readonly>
             </label>
             <label class="expanded-only right-bound key-copy">
-                <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box" value="${keyString}">
+                <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box key-box" value="${keyString}" readonly>
             </label>
             <label class="expanded-only right-bound">
-                Date:<input type="text" class="text-box" value="${dateString}">
+                Date:<input type="text" class="text-box" value="${dateString}" readonly>
             </label>
-            <label class="expanded-only right-bound">
-                Persist:<input type="text" class="text-box" value="${result.sessionId ? ((result.removed ? 'Removed' : 'Yes') + ` (Session ID: ${escapeHTML(result.sessionId)})`) : 'No'}">
-            </label>
+            ${result.sessions?.length > 0 ? `<label class="expanded-only right-bound session-copy">
+                <a href="#" title="Click to copy, right click to remove">Sessions:</a><select class="text-box session-box"></select>
+            </label>` : ''}
             ${result.manifests.length > 0 ? `<label class="expanded-only right-bound manifest-copy">
-                <a href="#" title="Click to copy">Manifest:</a><select id="manifest" class="text-box"></select>
+                <a href="#" title="Click to copy">Manifest:</a><select class="text-box manifest-box"></select>
             </label>
             <label class="expanded-only right-bound command-copy">
-                <a href="#" title="Click to copy">Cmd:</a><input type="text" id="command" class="text-box">
+                <a href="#" title="Click to copy">Cmd:</a><input type="text" class="text-box command-box" readonly>
             </label>` : ''}
         </div>`;
 
@@ -367,10 +413,33 @@ async function appendLog(result, testDuplicate) {
         navigator.clipboard.writeText(keyString);
     });
 
-    if (result.manifests.length > 0) {
-        const command = logContainer.querySelector('#command');
+    if (result.sessions?.length > 0) {
+        const sessionSelect = logContainer.querySelector(".session-box");
+        const option = new Option(`${result.sessions.length} persistent sessions`, "");
+        sessionSelect.add(option);
 
-        const select = logContainer.querySelector("#manifest");
+        result.sessions.forEach((session) => {
+            const option = new Option(session, session);
+            sessionSelect.add(option);
+        });
+
+        const sessionCopy = logContainer.querySelector('.session-copy');
+        sessionCopy.addEventListener('click', () => {
+            if (sessionSelect.selectedIndex === 0) return;
+            navigator.clipboard.writeText(sessionSelect.value);
+        });
+        sessionCopy.addEventListener('contextmenu', (event) => {
+            if (sessionSelect.selectedIndex === 0) return;
+            event.preventDefault();
+            result.sessions.splice(sessionSelect.selectedIndex - 1, 1);
+            AsyncLocalStorage.setStorage({ [pssh]: result });
+        });
+    }
+
+    if (result.manifests.length > 0) {
+        const command = logContainer.querySelector('.command-box');
+
+        const select = logContainer.querySelector(".manifest-box");
         select.addEventListener('change', async () => {
             command.value = await createCommand(select.value, keyString, result.title);
         });
@@ -408,7 +477,7 @@ async function appendLog(result, testDuplicate) {
     const removeButton = logContainer.querySelector('.removeButton');
     removeButton.addEventListener('click', () => {
         logContainer.remove();
-        AsyncLocalStorage.removeStorage([logContainer.dataset.sessionId || logContainer.dataset.pssh]);
+        AsyncLocalStorage.removeStorage([pssh]);
     });
 
     for (const a of logContainer.getElementsByTagName('a')) {
@@ -421,20 +490,13 @@ async function appendLog(result, testDuplicate) {
     if (testDuplicate) {
         const logContainers = keyContainer.querySelectorAll('.log-container');
         logContainers.forEach(container => {
-            if (result.sessionId) {
-                if (container.dataset.sessionId === result.sessionId) {
-                    container.remove();
-                }
-            } else {
-                if (container.dataset.pssh === pssh && container.dataset.sessionId === "") {
-                    container.remove();
-                }
+            if (container.log.pssh === pssh && container.log.origin === result.origin) {
+                container.remove();
             }
         });
     }
 
-    logContainer.dataset.pssh = pssh;
-    logContainer.dataset.sessionId = result.sessionId || "";
+    logContainer.log = result;
 
     keyContainer.appendChild(logContainer);
 
@@ -610,43 +672,3 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 });
 // #endregion Initialization and Config Management
-
-// #region Command Options
-
-// Helper: Save all command option settings
-async function saveCommandOptions() {
-    const opts = {
-        decryptionEngine: decryptionEngineSelect.value,
-        muxer: muxerSelect.value,
-        format: formatSelect.value,
-        videoStream: videoStreamSelect.value,
-        audioAll: audioAllCheckbox.checked,
-        subsAll: subsAllCheckbox.checked
-    };
-    await SettingsManager.saveCommandOptions(opts);
-}
-
-// Helper: Restore all command option settings
-async function restoreCommandOptions() {
-    const opts = await SettingsManager.getCommandOptions?.() || {};
-    decryptionEngineSelect.value = opts.decryptionEngine || 'SHAKA_PACKAGER';
-    muxerSelect.value = opts.muxer || 'ffmpeg';
-    formatSelect.value = opts.format || 'mp4';
-    videoStreamSelect.value = opts.videoStream || 'best';
-    audioAllCheckbox.checked = !!opts.audioAll;
-    subsAllCheckbox.checked = !!opts.subsAll;
-}
-
-// Add event listeners to save on change
-[
-    decryptionEngineSelect,
-    muxerSelect,
-    formatSelect,
-    videoStreamSelect,
-    audioAllCheckbox,
-    subsAllCheckbox
-].forEach(elem => {
-    elem.addEventListener('change', saveCommandOptions);
-});
-
-// #endregion Command Options

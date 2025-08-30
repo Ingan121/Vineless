@@ -24,7 +24,6 @@ let manifests = new Map();
 let requests = new Map();
 let sessions = new Map();
 let sessionCnt = {};
-let logs = [];
 
 const isSW = typeof window === "undefined";
 
@@ -60,25 +59,20 @@ async function parseClearKey(body) {
         kid: uint8ArrayToHex(base64toUint8Array(key.kid.replace(/-/g, "+").replace(/_/g, "/") + "==")),
         k: uint8ArrayToHex(base64toUint8Array(key.k.replace(/-/g, "+").replace(/_/g, "/") + "=="))
     }));
-    const pssh_data = btoa(JSON.stringify({kids: clearkey["keys"].map(key => key.k)}));
-
-    const log = {
-        type: "CLEARKEY",
-        pssh_data: pssh_data,
-        keys: formatted_keys,
-        timestamp: Math.floor(Date.now() / 1000)
-    }
+    const pssh = btoa(JSON.stringify({kids: clearkey["keys"].map(key => key.k)}));
 
     return {
-        pssh: pssh_data,
-        log: log
-    }
+        type: "CLEARKEY",
+        pssh: pssh,
+        keys: formatted_keys
+    };
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
         const tab_url = sender.tab ? sender.tab.url : null;
         const host = tab_url ? new URL(tab_url).host : null;
+        const origin = sender.origin?.startsWith("https://") ? sender.origin : null;
         console.log(message.type, message.body);
 
         const profileConfig = await SettingsManager.getProfile(host);
@@ -103,17 +97,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     let pssh = initData;
                     const extra = {};
                     if (initDataType === "webm") {
+                        if (origin === null) {
+                            console.warn("[Vineless] 'webm'-type initData usage has been blocked on a page with opaque origin.");
+                            sendResponse();
+                            return;
+                        }
                         const kidHex = uint8ArrayToHex(base64toUint8Array(initData));
                         // Find first log that contains the requested KID
+                        const logs = Object.values(await AsyncLocalStorage.getStorage());
                         const log = logs.find(log =>
                             log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
                         );
-                        if (!log) {
+                        if (!log || log.origin !== origin) {
                             console.warn("[Vineless] Lookup failed: no log found for KID", kidHex);
                             sendResponse();
                             return;
                         }
-                        pssh = log.pssh_data;
+                        pssh = log.pssh;
                         switch (log.type) {
                             case "WIDEVINE":
                             {
@@ -189,18 +189,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             const instance = new device(host, keySystem, sessionId, sender.tab);
                             const res = await instance.generateChallenge(pssh, extra);
                             sessions.set(sessionId, instance);
-                            if (res.challenge) {
-                                console.log("[Vineless] Generated license challenge:", res.challenge, "sessionId:", sessionId);
-                                if (res.challenge === "null" || res.challenge === "bnVsbA==") {
-                                    notifyUser(
-                                        "Challenge generation failed!",
-                                        "Please refer to the extension " +
-                                        (isSW ? "service worker" : "background page") +
-                                        " DevTools console/network tab for more details."
-                                    );
-                                }
-                                sendResponse(res.challenge);
-                            } else {
+                            console.log("[Vineless] Generated license challenge:", res, "sessionId:", sessionId);
+                            if (!res || res === "null" || res === "bnVsbA==") {
                                 notifyUser(
                                     "Challenge generation failed!",
                                     "Please refer to the extension " +
@@ -208,7 +198,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                     " DevTools console/network tab for more details."
                                 );
                                 sendResponse();
+                                return;
                             }
+                            sendResponse(res);
                         } catch (error) {
                             console.error("[Vineless] Challenge generation error:", error);
                             notifyUser(
@@ -258,33 +250,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
 
                 if (res) {
-                    if (res.log) {
-                        console.log("[Vineless]", "KEYS", JSON.stringify(res.log.keys), tab_url);
+                    console.log("[Vineless]", "KEYS", JSON.stringify(res.keys), tab_url);
 
-                        res.log.url = tab_url;
-                        res.log.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
-                        res.log.title = sender.tab?.title;
+                    const key = res.pssh + origin;
+                    const existing = (await AsyncLocalStorage.getStorage(key))?.[key];
+                    if (existing) {
+                        if (persistent && profileConfig.allowPersistence && origin !== null) {
+                            if (existing.sessions) {
+                                existing.sessions.push(sessionId);
+                            } else {
+                                existing.sessions = [sessionId];
+                            }
+                        }
+                        existing.url = tab_url;
+                        existing.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
+                        existing.title = sender.tab?.title;
+                        existing.timestamp = Math.floor(Date.now() / 1000);
+                        await AsyncLocalStorage.setStorage({ [key]: existing });
+                    } else {
+                        res.url = tab_url;
+                        res.origin = origin;
+                        res.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
+                        res.title = sender.tab?.title;
+                        res.timestamp = Math.floor(Date.now() / 1000);
 
-                        if (persistent && profileConfig.allowPersistence) {
-                            res.log.sessionId = sessionId;
+                        if (persistent && profileConfig.allowPersistence && origin !== null) {
+                            res.sessions = [sessionId];
                         }
 
-                        logs.push(res.log);
-                        await AsyncLocalStorage.setStorage({ [res.log.sessionId || res.pssh]: res.log });
-
-                        sendResponse(JSON.stringify({
-                            pssh: res.pssh,
-                            keys: res.log.keys
-                        }));
-                    } else {
-                        notifyUser(
-                            "License parsing failed!",
-                            "Please refer to the extension " +
-                            (isSW ? "service worker" : "background page") +
-                            " DevTools console/network tab for more details."
-                        );
-                        sendResponse();
+                        await AsyncLocalStorage.setStorage({ [key]: res });
                     }
+
+                    sendResponse(JSON.stringify({
+                        pssh: res.pssh,
+                        keys: res.keys
+                    }));
                 } else {
                     // Most likely exception thrown in device.parseLicense, which is already notified above
                     sendResponse();
@@ -293,6 +293,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             case "LOAD":
             {
+                if (origin === null) {
+                    sendResponse();
+                    notifyUser("Vineless", "Persistent license usage has been blocked on a page with opaque origin.");
+                    return;
+                }
+
                 if (!sessionCnt[sender.tab.id]) {
                     sessionCnt[sender.tab.id] = 1;
                     setIcon("images/icon-active.png", sender.tab.id);
@@ -310,33 +316,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     setBadgeText("WV", sender.tab.id);
                 }
 
-                const savedLogs = await AsyncLocalStorage.getStorage();
-                for (const [key, log] of Object.entries(savedLogs)) {
-                    console.log(key, sessionId, key === sessionId);
-                    if (key === sessionId && !log.removed) {
-                        sendResponse(JSON.stringify({
-                            pssh: log.pssh_data || log.wrm_header,
-                            keys: log.keys
-                        }));
-                        return;
-                    }
+                const logs = Object.values(await AsyncLocalStorage.getStorage());
+                const log = logs.find(log => log.sessions.includes(sessionId));
+                if (log && log.origin === origin) {
+                    sendResponse(JSON.stringify({
+                        pssh: log.pssh,
+                        keys: log.keys
+                    }));
+                } else {
+                    sendResponse();
+                    notifyUser("Persistent session not found", "Web page tried to load a persistent session that does not exist.");
                 }
-                sendResponse();
-                notifyUser("Persistent session not found", "Web page tried to load a persistent session that does not exist.");
                 break;
             }
             case "REMOVE":
             {
+                if (origin === null) {
+                    sendResponse();
+                    notifyUser("Vineless", "Persistent license usage has been blocked on a page with opaque origin.");
+                    return;
+                }
+
                 const sessionId = message.body;
-                const item = (await AsyncLocalStorage.getStorage(sessionId))?.[sessionId];
-                if (item) {
-                    const itemOrigin = new URL(item.url).origin;
-                    const tabOrigin = new URL(tab_url).origin;
-                    console.log(itemOrigin, tabOrigin);
-                    if (itemOrigin === tabOrigin) {
-                        item.removed = true;
-                        await AsyncLocalStorage.setStorage({ [sessionId]: item });
-                    }
+                const logs = Object.values(await AsyncLocalStorage.getStorage());
+                const log = logs.find(log => log.sessions.includes(sessionId));
+                if (log && log.origin === origin) {
+                    const idx = log.sessions.indexOf(sessionId);
+                    log.sessions.splice(idx, 1);
+                    await AsyncLocalStorage.setStorage({ [log.pssh]: log });
                 }
                 sendResponse();
                 break;
@@ -400,7 +407,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         enabled: profileConfig.clearkey.enabled
                     },
                     blockDisabled: profileConfig.blockDisabled,
-                    allowPersistence: profileConfig.allowPersistence
+                    allowPersistence: profileConfig.allowPersistence && origin !== null
                 }));
                 break;
             case "OPEN_PICKER_WVD":
@@ -414,11 +421,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case "OPEN_PICKER_PRD":
                 if (message.from === "content" || sender.tab) return;
                 openPopup('pages/picker/filePicker.html?type=prd', 450, 200);
-                break;
-            case "CLEAR":
-                if (message.from === "content" || sender.tab) return;
-                logs = [];
-                manifests.clear()
                 break;
             case "MANIFEST":
                 const parsed = JSON.parse(message.body);
