@@ -318,7 +318,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
 
                 const logs = Object.values(await AsyncLocalStorage.getStorage());
-                const log = logs.find(log => log.origin === origin && log.sessions.includes(sessionId));
+                const log = logs.find(log => log.origin === origin && log.sessions?.includes(sessionId));
                 if (log) {
                     sendResponse(JSON.stringify({
                         pssh: log.pssh,
@@ -340,8 +340,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 const sessionId = message.body;
                 const logs = Object.values(await AsyncLocalStorage.getStorage());
-                const log = logs.find(log => log.sessions.includes(sessionId));
-                if (log && log.origin === origin) {
+                const log = logs.find(log => log.origin === origin && log.sessions?.includes(sessionId));
+                if (log) {
                     const idx = log.sessions.indexOf(sessionId);
                     log.sessions.splice(idx, 1);
                     await AsyncLocalStorage.setStorage({ [log.pssh + origin]: log });
