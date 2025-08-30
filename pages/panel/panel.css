@@ -219,6 +219,9 @@ select[id*="-combobox"] {
     padding: 0;
     position: relative;
 }
+.incognito .expandableDiv {
+    background-color: lightgray;
+}
 .expandableDiv.expanded {
     padding: 5px;
 }
@@ -300,6 +303,9 @@ select[id*="-combobox"] {
     }
     .expandableDiv {
         background-color: #1b2027;
+    }
+    .incognito .expandableDiv {
+        background-color: black;
     }
     .slider {
         background-color: gray !important;

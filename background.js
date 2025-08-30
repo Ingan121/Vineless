@@ -13,6 +13,7 @@ import {
     SettingsManager,
     ScriptManager,
     AsyncLocalStorage,
+    AsyncSessionStorage,
 } from "./util.js";
 
 import { WidevineLocal } from "./lib/widevine/main.js";
@@ -252,8 +253,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (res) {
                     console.log("[Vineless]", "KEYS", JSON.stringify(res.keys), tab_url);
 
+                    const storage = sender.tab?.incognito ? AsyncSessionStorage : AsyncLocalStorage;
                     const key = res.pssh + origin;
-                    const existing = (await AsyncLocalStorage.getStorage(key))?.[key];
+                    const existing = (await storage.getStorage(key))?.[key];
                     if (existing) {
                         if (persistent && profileConfig.allowPersistence && origin !== null) {
                             if (existing.sessions) {
@@ -267,7 +269,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         existing.manifests = manifests.has(tab_url) ? manifests.get(tab_url) : [];
                         existing.title = sender.tab?.title;
                         existing.timestamp = Math.floor(Date.now() / 1000);
-                        await AsyncLocalStorage.setStorage({ [key]: existing });
+                        await storage.setStorage({ [key]: existing });
                     } else {
                         res.url = tab_url;
                         res.origin = origin;
@@ -279,7 +281,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             res.sessions = [sessionId];
                         }
 
-                        await AsyncLocalStorage.setStorage({ [key]: res });
+                        await storage.setStorage({ [key]: res });
                     }
 
                     sendResponse(JSON.stringify({
@@ -297,6 +299,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (origin === null) {
                     sendResponse();
                     notifyUser("Vineless", "Persistent license usage has been blocked on a page with opaque origin.");
+                    return;
+                }
+                if (sender.tab?.incognito) {
+                    notifyUser("Vineless", "Persistent license usage has been blocked in incognito mode.");
                     return;
                 }
 
@@ -335,6 +341,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (origin === null) {
                     sendResponse();
                     notifyUser("Vineless", "Persistent license usage has been blocked on a page with opaque origin.");
+                    return;
+                }
+                if (sender.tab?.incognito) {
+                    notifyUser("Vineless", "Persistent license usage has been blocked in incognito mode.");
                     return;
                 }
 
@@ -454,6 +464,15 @@ chrome.webNavigation.onCommitted.addListener((details) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
     delete sessionCnt[tabId];
+});
+
+chrome.windows.onRemoved.addListener(() => {
+    chrome.windows.getAll({ populate: false }, (windows) => {
+        const incognitoWindows = windows.filter(w => w.incognito);
+        if (incognitoWindows.length === 0) {
+            chrome.storage.session.clear();
+        }
+    });
 });
 
 SettingsManager.getGlobalEnabled().then(enabled => {

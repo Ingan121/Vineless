@@ -2,6 +2,7 @@ import "../../lib/widevine/protobuf.min.js";
 import "../../lib/widevine/license_protocol.js";
 import {
     AsyncLocalStorage,
+    AsyncSessionStorage,
     base64toUint8Array,
     getForegroundTab,
     DeviceManager,
@@ -365,13 +366,16 @@ function getFriendlyType(type) {
     }
 }
 
-async function appendLog(result, testDuplicate) {
+async function appendLog(result, testDuplicate, incognito) {
     const keyString = result.keys.map(key => `--key ${key.kid}:${key.k}`).join(' ');
     const date = new Date(result.timestamp * 1000);
     const dateString = date.toLocaleString();
 
     const logContainer = document.createElement('div');
     logContainer.classList.add('log-container');
+    if (incognito) {
+        logContainer.classList.add('incognito');
+    }
 
     const pssh = result.pssh || result.pssh_data || result.wrm_header;
 
@@ -490,7 +494,10 @@ async function appendLog(result, testDuplicate) {
     if (testDuplicate) {
         const logContainers = keyContainer.querySelectorAll('.log-container');
         logContainers.forEach(container => {
-            if (container.log.pssh === pssh && container.log.origin === result.origin) {
+            if (container.log.pssh === pssh &&
+                container.log.origin === result.origin &&
+                container.classList.has('incognito') === incognito
+            ) {
                 container.remove();
             }
         });
@@ -509,12 +516,21 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
             await appendLog(values.newValue, true);
         }
     }
+    if (areaName === 'session') {
+        for (const [key, values] of Object.entries(changes)) {
+            await appendLog(values.newValue, true, true);
+        }
+    }
 });
 
 async function checkLogs() {
     const logs = await AsyncLocalStorage.getStorage(null);
+    const incognitoLogs = await AsyncSessionStorage.getStorage(null);
     Object.values(logs).forEach(async (result) => {
         await appendLog(result, false);
+    });
+    Object.values(incognitoLogs).forEach(async (result) => {
+        await appendLog(result, false, true);
     });
 }
 // #endregion Keys

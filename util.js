@@ -79,6 +79,44 @@ export class AsyncLocalStorage {
     }
 }
 
+export class AsyncSessionStorage {
+    static async setStorage(items) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.session.set(items, () => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError));
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    static async getStorage(keys) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.session.get(keys, (result) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError));
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+    }
+
+    static async removeStorage(keys) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.session.remove(keys, (result) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError));
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+    }
+}
+
 export class DeviceManager {
     static async saveWidevineDevice(name, value) {
         const result = await AsyncSyncStorage.getStorage(['devices']);
