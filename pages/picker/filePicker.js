@@ -36,7 +36,6 @@ fileInput.addEventListener('change', async (event) => {
             alert("Failed to import device file: " + file.name);
         }
     }
-    document.write("Imported successfully!"); // For stupid mobile browsers that window.close() doesn't work
     window.close();
 });
 
@@ -48,7 +47,6 @@ document.addEventListener("drop", async (event) => {
             alert("Failed to import device file: " + file.name);
         }
     }
-    document.write("Imported successfully!"); // For stupid mobile browsers that window.close() doesn't work
     window.close();
 });
 window.addEventListener("dragover", e => e.preventDefault());
@@ -61,9 +59,8 @@ document.getElementById('urlImport').addEventListener('click', async () => {
         blob.name = decodeURIComponent(url.split('/').pop());
         if (!await importDevice(blob)) {
             window.resizeTo(800, 600);
-            alert("Failed to import!");
+            alert("Invalid device file!");
         }
-        document.write("Imported successfully!");
         window.close();
     } catch (e) {
         console.error(e);
