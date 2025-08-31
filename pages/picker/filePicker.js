@@ -29,6 +29,33 @@ fileInput.addEventListener('change', async (event) => {
     }
 });
 
+document.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) {
+        try {
+            switch (type) {
+                case "wvd":
+                    await SettingsManager.importDevice(file);
+                    break;
+                case "remote":
+                    await SettingsManager.loadRemoteCDM(file);
+                    break;
+                case "prd":
+                    await SettingsManager.importPRDevice(file);
+                    break;
+            }
+            document.write("Imported successfully!");
+            window.close();
+        } catch (e) {
+            console.error(e);
+            window.resizeTo(800, 600);
+            alert("Invalid device file selected!");
+        }
+    }
+});
+window.addEventListener("dragover", e => e.preventDefault());
+
 document.getElementById('urlImport').addEventListener('click', async () => {
     try {
         const url = document.getElementById('urlInput').value;
