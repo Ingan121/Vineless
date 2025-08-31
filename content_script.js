@@ -311,7 +311,7 @@
                     if (enabled) {
                         systemAccess._emeShim = {
                             origKeySystem,
-                            persistent: origConfig[0].persistentState !== "not-allowed"
+                            persistent: !origConfig.some(c => c.persistentState === "not-allowed")
                         };
                         systemAccess._getRealConfiguration = systemAccess.getConfiguration;
                         systemAccess.getConfiguration = function () {

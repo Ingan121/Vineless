@@ -93,7 +93,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     sendResponse();
                 } else {
                     const parsed = JSON.parse(message.body);
-                    const { keySystem, sessionId, initDataType, initData, serverCert } = parsed;
+                    const { keySystem, sessionId, initData, serverCert } = parsed;
                     let device = null;
                     let pssh = initData;
                     const extra = {};
