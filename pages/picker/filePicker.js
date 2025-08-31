@@ -33,7 +33,7 @@ fileInput.addEventListener('change', async (event) => {
     for (const file of event.target.files) {
         if (!await importDevice(file)) {
             window.resizeTo(800, 600);
-            alert("Failed to import device file:", file.name);
+            alert("Failed to import device file: " + file.name);
         }
     }
     document.write("Imported successfully!"); // For stupid mobile browsers that window.close() doesn't work
@@ -45,7 +45,7 @@ document.addEventListener("drop", async (event) => {
     for (const file of event.dataTransfer.files) {
         if (!await importDevice(file)) {
             window.resizeTo(800, 600);
-            alert("Failed to import device file:", file.name);
+            alert("Failed to import device file: " + file.name);
         }
     }
     document.write("Imported successfully!"); // For stupid mobile browsers that window.close() doesn't work
