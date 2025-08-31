@@ -87,7 +87,7 @@ reloadButton.addEventListener('click', async function () {
 });
 
 const version = document.getElementById('version');
-version.textContent = "v" + chrome.runtime.getManifest().version + " Pre-release";
+version.textContent = "v" + chrome.runtime.getManifest().version;
 
 const wvEnabled = document.getElementById('wvEnabled');
 const prEnabled = document.getElementById('prEnabled');
@@ -485,7 +485,7 @@ async function appendLog(result, testDuplicate) {
     removeButton.addEventListener('click', () => {
         logContainer.remove();
         const storage = currentTab.incognito ? AsyncSessionStorage : AsyncLocalStorage;
-        storage.removeStorage([pssh]);
+        storage.removeStorage([pssh + (result.origin ?? '')]);
     });
 
     for (const a of logContainer.getElementsByTagName('a')) {

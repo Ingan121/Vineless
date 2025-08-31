@@ -97,63 +97,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     let device = null;
                     let pssh = initData;
                     const extra = {};
-                    if (initDataType === "webm") {
-                        if (origin === null) {
-                            console.warn("[Vineless] 'webm'-type initData usage has been blocked on a page with opaque origin.");
-                            sendResponse();
-                            return;
-                        }
+                    if (initDataType === "webm" && keySystem.startsWith("com.widevine.alpha") && origin !== null && !sender.tab?.incognito) {
                         const kidHex = uint8ArrayToHex(base64toUint8Array(initData));
                         // Find first log that contains the requested KID
                         const logs = Object.values(await AsyncLocalStorage.getStorage());
                         const log = logs.find(log =>
-                            log.origin === origin && log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
+                            log.origin === origin && log.type === "WIDEVINE" && log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
                         );
-                        if (!log) {
-                            console.warn("[Vineless] Lookup failed: no log found for KID", kidHex);
-                            sendResponse();
-                            return;
+                        if (log) {
+                            pssh = log.pssh;
                         }
-                        pssh = log.pssh;
-                        switch (log.type) {
-                            case "WIDEVINE":
-                            {
-                                setBadgeText("WV", sender.tab.id);
-                                pssh = getWvPsshFromConcatPssh(pssh);
-                                const device_type = profileConfig.widevine.type;
-                                switch (device_type) {
-                                    case "local":
-                                        device = WidevineLocal;
-                                        break;
-                                    case "remote":
-                                        device = GenericRemoteDevice;
-                                        break;
-                                    case "custom":
-                                        device = CustomHandlers[profileConfig.widevine.device.custom].handler;
-                                        break;
-                                }
-                                extra.serverCert = serverCert;
-                                break;
-                            }
-                            case "PLAYREADY": // UNTESTED
-                            {
-                                setBadgeText("PR", sender.tab.id);
-                                const device_type = profileConfig.playready.type;
-                                switch (device_type) {
-                                    case "local":
-                                        device = PlayReadyLocal;
-                                        break;
-                                    case "remote":
-                                        device = GenericRemoteDevice;
-                                        break;
-                                    case "custom":
-                                        device = CustomHandlers[profileConfig.playready.device.custom].handler;
-                                        break;
-                                }
-                                break;
-                            }
-                        }
-                    } else if (keySystem.startsWith("com.microsoft.playready")) {
+                    }
+                    if (keySystem.startsWith("com.microsoft.playready")) {
                         setBadgeText("PR", sender.tab.id);
                         const device_type = profileConfig.playready.type;
                         switch (device_type) {

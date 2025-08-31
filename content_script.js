@@ -562,7 +562,9 @@
                     initDataType: initDataType,
                     initData: uint8ArrayToBase64(new Uint8Array(initData))
                 };
-                if (!["webm", "cenc"].includes(initDataType.toLowerCase())) {
+                if (!["webm", "cenc"].includes(initDataType.toLowerCase()) ||
+                    (keySystem.startsWith("com.microsoft.playready") && initDataType.toLowerCase() !== "cenc")
+                ) {
                     throw new Error("Unsupported initDataType: " + initDataType);
                 }
                 if (mediaKeySession._mediaKeys._emeShim.serverCert && profileConfig.widevine.serverCert !== "never") {
