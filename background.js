@@ -97,17 +97,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     let device = null;
                     let pssh = initData;
                     const extra = {};
-                    if (initDataType === "webm" && keySystem.startsWith("com.widevine.alpha") && origin !== null && !sender.tab?.incognito) {
-                        const kidHex = uint8ArrayToHex(base64toUint8Array(initData));
-                        // Find first log that contains the requested KID
-                        const logs = Object.values(await AsyncLocalStorage.getStorage());
-                        const log = logs.find(log =>
-                            log.origin === origin && log.type === "WIDEVINE" && log.keys.some(k => k.kid.toLowerCase() === kidHex.toLowerCase())
-                        );
-                        if (log) {
-                            pssh = log.pssh;
-                        }
-                    }
                     if (keySystem.startsWith("com.microsoft.playready")) {
                         setBadgeText("PR", sender.tab.id);
                         const device_type = profileConfig.playready.type;
@@ -209,6 +198,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     console.log("[Vineless]", "KEYS", JSON.stringify(res.keys), tab_url);
 
                     const storage = sender.tab?.incognito ? AsyncSessionStorage : AsyncLocalStorage;
+                    // Find existing PSSH with the same KID for WebM initData to prevent duplicate log entries
+                    if (/^[0-9a-fA-F]{32}$/.test(res.pssh)) {
+                        // Find first log that contains the requested KID
+                        const logs = Object.values(await AsyncLocalStorage.getStorage());
+                        const log = logs.find(log =>
+                            log.origin === origin && log.type === "WIDEVINE" && log.keys.some(k => k.kid.toLowerCase() === res.pssh.toLowerCase())
+                        );
+                        if (log) {
+                            res.pssh = log.pssh;
+                        }
+                    }
                     const key = res.pssh + origin;
                     const existing = (await storage.getStorage(key))?.[key];
                     if (existing) {
