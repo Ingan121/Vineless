@@ -650,6 +650,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         await timeoutPromise(navigator.requestMediaKeySystemAccess('org.w3.clearkey', configs), 3000);
         overlay.style.display = 'none';
 
+        const { devicesCollapsed, commandsCollapsed } = await SettingsManager.getUICollapsed();
+        if (!devicesCollapsed) {
+            main.open = true;
+        }
+        if (!commandsCollapsed) {
+            commandOptions.open = true;
+        }
         currentTab = await getForegroundTab();
         const host = new URL(currentTab.url).host;
         if (host) {
@@ -670,15 +677,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();
         await PRDeviceManager.loadSetAllPlayreadyDevices();
-        const { devicesCollapsed, commandsCollapsed } = await SettingsManager.getUICollapsed();
-        if (!devicesCollapsed) {
-            main.open = true;
-        }
-        if (!commandsCollapsed) {
-            commandOptions.open = true;
-        }
-        checkLogs();
         loadConfig(host);
+        checkLogs();
     } catch (e) {
         // bail out
         console.error(e);
