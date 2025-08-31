@@ -10,7 +10,8 @@ import {
     PRDeviceManager,
     CustomHandlerManager,
     SettingsManager,
-    escapeHTML
+    escapeHTML,
+    notifyUser
 } from "../../util.js";
 
 import { CustomHandlers } from "../../lib/customhandlers/main.js";
@@ -20,6 +21,7 @@ const overlayMessage = document.getElementById('overlayMessage');
 const icon = document.getElementById('icon');
 const main = document.getElementById('main');
 const commandOptions = document.getElementById('command-options');
+const keysLabel = document.getElementById('keysLabel');
 const keyContainer = document.getElementById('key-container');
 
 let currentTab = null;
@@ -128,8 +130,10 @@ commandOptions.addEventListener('toggle', async function () {
 
 const exportButton = document.getElementById('export');
 exportButton.addEventListener('click', async function () {
-    const logs = await AsyncLocalStorage.getStorage(null);
-    SettingsManager.downloadFile(new TextEncoder().encode(JSON.stringify(logs) + "\n"), "logs.json");
+    const storage = currentTab.incognito ? AsyncSessionStorage : AsyncLocalStorage;
+    const logs = Object.values(await storage.getStorage(null));
+    const encoded = new TextEncoder().encode(JSON.stringify(logs) + "\n");
+    SettingsManager.downloadFile(encoded, currentTab.incognito ? "logs-incognito.json" : "logs.json");
 });
 
 for (const a of document.getElementsByTagName('a')) {
@@ -366,16 +370,13 @@ function getFriendlyType(type) {
     }
 }
 
-async function appendLog(result, testDuplicate, incognito) {
+async function appendLog(result, testDuplicate) {
     const keyString = result.keys.map(key => `--key ${key.kid}:${key.k}`).join(' ');
     const date = new Date(result.timestamp * 1000);
     const dateString = date.toLocaleString();
 
     const logContainer = document.createElement('div');
     logContainer.classList.add('log-container');
-    if (incognito) {
-        logContainer.classList.add('incognito');
-    }
 
     const pssh = result.pssh || result.pssh_data || result.wrm_header;
 
@@ -436,7 +437,9 @@ async function appendLog(result, testDuplicate, incognito) {
             if (sessionSelect.selectedIndex === 0) return;
             event.preventDefault();
             result.sessions.splice(sessionSelect.selectedIndex - 1, 1);
-            AsyncLocalStorage.setStorage({ [pssh + result.origin]: result });
+            sessionSelect.remove(sessionSelect.selectedIndex);
+            const storage = currentTab.incognito ? AsyncSessionStorage : AsyncLocalStorage;
+            storage.setStorage({ [pssh + result.origin]: result });
         });
     }
 
@@ -481,7 +484,8 @@ async function appendLog(result, testDuplicate, incognito) {
     const removeButton = logContainer.querySelector('.removeButton');
     removeButton.addEventListener('click', () => {
         logContainer.remove();
-        AsyncLocalStorage.removeStorage([pssh]);
+        const storage = currentTab.incognito ? AsyncSessionStorage : AsyncLocalStorage;
+        storage.removeStorage([pssh]);
     });
 
     for (const a of logContainer.getElementsByTagName('a')) {
@@ -494,10 +498,7 @@ async function appendLog(result, testDuplicate, incognito) {
     if (testDuplicate) {
         const logContainers = keyContainer.querySelectorAll('.log-container');
         logContainers.forEach(container => {
-            if (container.log.pssh === pssh &&
-                container.log.origin === result.origin &&
-                container.classList.has('incognito') === incognito
-            ) {
+            if (container.log.pssh === pssh && container.log.origin === result.origin) {
                 container.remove();
             }
         });
@@ -524,13 +525,10 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
 });
 
 async function checkLogs() {
-    const logs = await AsyncLocalStorage.getStorage(null);
-    const incognitoLogs = await AsyncSessionStorage.getStorage(null);
+    const storage = currentTab.incognito ? AsyncSessionStorage : AsyncLocalStorage;
+    const logs = await storage.getStorage(null);
     Object.values(logs).forEach(async (result) => {
         await appendLog(result, false);
-    });
-    Object.values(incognitoLogs).forEach(async (result) => {
-        await appendLog(result, false, true);
     });
 }
 // #endregion Keys
@@ -597,6 +595,8 @@ async function applyConfig() {
     if (scope === "global" || (config.enabled && !await SettingsManager.getGlobalEnabled())) {
         await SettingsManager.setGlobalEnabled(config.enabled);
     }
+    // Show the reload button if not in override mode
+    // (makes no sense in override mode as it's not the current site)
     if (!siteScopeLabel.dataset.hostOverride) {
         reloadButton.classList.remove('hidden');
     }
@@ -661,6 +661,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             siteScopeLabel.textContent = "<no origin>";
             toggle.disabled = true;
         }
+        if (currentTab.incognito) {
+            keysLabel.textContent = "Keys (Incognito)";
+        }
         downloaderName.value = await SettingsManager.getExecutableName();
         await restoreCommandOptions();
         CustomHandlerManager.loadSetAllCustomHandlers();
@@ -683,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             overlayMessage.innerHTML = "This browser does not support either EME or ClearKey!<br>Vineless cannot work without those!";
             document.body.style.overflow = "hidden";
         } else {
-            alert("An unknown error occurred while loading the panel!");
+            notifyUser("Vineless", "An unknown error occurred while loading the panel!\n" + e.message);
         }
     }
 });
