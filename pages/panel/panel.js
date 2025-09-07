@@ -136,31 +136,6 @@ exportButton.addEventListener('click', async function () {
     SettingsManager.downloadFile(encoded, currentTab.incognito ? "logs-incognito.json" : "logs.json");
 });
 
-const addButton = document.getElementById('add');
-addButton.addEventListener('click', async function () {
-    const keysString = prompt("Enter keys in the format kid:key, separate multiple keys with spaces");
-    if (!keysString) {
-        return;
-    }
-    const keys = [];
-    for (const part of keysString.trim().split(/\s+/)) {
-        const [kid, k] = part.split(":");
-        if (!kid || !k || !/^[0-9a-fA-F]{32}$/.test(kid) || !/^[0-9a-fA-F]{32,64}$/.test(k)) {
-            alert(`Invalid key format: ${part}`);
-            return;
-        }
-        keys.push({ kid: kid.toLowerCase(), k: k.toLowerCase() });
-    }
-    const log = {
-        type: "MANUAL",
-        timestamp: Math.floor(Date.now() / 1000),
-        keys: keys
-    };
-    const storage = currentTab.incognito ? AsyncSessionStorage : AsyncLocalStorage;
-    const id = `manual-${log.timestamp}-${Math.random().toString(16).slice(2)}`;
-    storage.setStorage({ [id]: log });
-});
-
 for (const a of document.getElementsByTagName('a')) {
     a.addEventListener('click', (event) => {
         event.preventDefault();
@@ -342,7 +317,8 @@ async function restoreCommandOptions() {
 // #region Logs
 const clear = document.getElementById('clear');
 clear.addEventListener('click', async function() {
-    chrome.storage.local.clear();
+    const storage = currentTab.incognito ? chrome.storage.session : chrome.storage.local;
+    storage.clear();
     keyContainer.innerHTML = "";
 });
 
@@ -405,56 +381,38 @@ async function appendLog(result, testDuplicate) {
 
     const pssh = result.pssh || result.pssh_data || result.wrm_header;
 
-    if (result.type !== "MANUAL") {
-        logContainer.innerHTML = `
-            <button class="toggleButton">+</button>
-            <div class="expandableDiv collapsed">
-                <a href="#" class="expanded-only removeButton">x</a>
-                <label class="always-visible right-bound">
-                    URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}"${result.origin ? `title="Origin: ${escapeHTML(result.origin)}"` : ""} readonly>
-                </label>
-                <label class="expanded-only right-bound">
-                    Title:<input type="text" class="text-box" value="${escapeHTML(result.title || '')}" readonly>
-                </label>
-                <label class="expanded-only right-bound">
-                    Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}" readonly>
-                </label>
-                <label class="expanded-only right-bound">
-                    ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box pssh-box" value="${escapeHTML(pssh)}" readonly>
-                </label>
-                <label class="expanded-only right-bound key-copy">
-                    <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box key-box" value="${keyString}" readonly>
-                </label>
-                <label class="expanded-only right-bound">
-                    Date:<input type="text" class="text-box" value="${dateString}" readonly>
-                </label>
-                ${result.sessions?.length > 0 ? `<label class="expanded-only right-bound session-copy">
-                    <a href="#" title="Click to copy, right click to remove">Sessions:</a><select class="text-box session-box"></select>
-                </label>` : ''}
-                ${result.manifests.length > 0 ? `<label class="expanded-only right-bound manifest-copy">
-                    <a href="#" title="Click to copy">Manifest:</a><select class="text-box manifest-box"></select>
-                </label>
-                <label class="expanded-only right-bound command-copy">
-                    <a href="#" title="Click to copy">Cmd:</a><input type="text" class="text-box command-box" readonly>
-                </label>` : ''}
-            </div>`;
-    } else {
-        logContainer.innerHTML = `
-            <button class="toggleButton">+</button>
-                <div class="expandableDiv collapsed">
-                    <a href="#" class="expanded-only removeButton">x</a>
-                    <label class="always-visible right-bound key-copy">
-                        <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box key-box" value="${keyString}" readonly>
-                    </label>
-                    <label class="expanded-only right-bound">
-                        Type:<input type="text" class="text-box" value="Manually Added" readonly>
-                    </label>
-                    <label class="expanded-only right-bound">
-                        Date:<input type="text" class="text-box" value="${dateString}" readonly>
-                    </label>
-                </div>
-            `;
-    }
+    logContainer.innerHTML = `
+        <button class="toggleButton">+</button>
+        <div class="expandableDiv collapsed">
+            <a href="#" class="expanded-only removeButton">x</a>
+            <label class="always-visible right-bound">
+                URL:<input type="text" class="text-box" value="${escapeHTML(result.url)}"${result.origin ? `title="Origin: ${escapeHTML(result.origin)}"` : ""} readonly>
+            </label>
+            <label class="expanded-only right-bound">
+                Title:<input type="text" class="text-box" value="${escapeHTML(result.title || '')}" readonly>
+            </label>
+            <label class="expanded-only right-bound">
+                Type:<input type="text" class="text-box" value="${getFriendlyType(result.type)}" readonly>
+            </label>
+            <label class="expanded-only right-bound">
+                ${result.type === "PLAYREADY" ? "WRM" : "PSSH"}:<input type="text" class="text-box pssh-box" value="${escapeHTML(pssh)}" readonly>
+            </label>
+            <label class="expanded-only right-bound key-copy">
+                <a href="#" title="Click to copy">Keys:</a><input type="text" class="text-box key-box" value="${keyString}" readonly>
+            </label>
+            <label class="expanded-only right-bound">
+                Date:<input type="text" class="text-box" value="${dateString}" readonly>
+            </label>
+            ${result.sessions?.length > 0 ? `<label class="expanded-only right-bound session-copy">
+                <a href="#" title="Click to copy, right click to remove">Sessions:</a><select class="text-box session-box"></select>
+            </label>` : ''}
+            ${result.manifests.length > 0 ? `<label class="expanded-only right-bound manifest-copy">
+                <a href="#" title="Click to copy">Manifest:</a><select class="text-box manifest-box"></select>
+            </label>
+            <label class="expanded-only right-bound command-copy">
+                <a href="#" title="Click to copy">Cmd:</a><input type="text" class="text-box command-box" readonly>
+            </label>` : ''}
+        </div>`;
 
     const keysInput = logContainer.querySelector('.key-copy');
     keysInput.addEventListener('click', () => {
@@ -538,7 +496,7 @@ async function appendLog(result, testDuplicate) {
     }
 
     // Remote duplicate existing entry
-    if (testDuplicate && result.type !== "MANUAL") {
+    if (testDuplicate) {
         const logContainers = keyContainer.querySelectorAll('.log-container');
         logContainers.forEach(container => {
             if (container.log.pssh === pssh && container.log.origin === result.origin) {
