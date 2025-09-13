@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/Ingan121/Vineless/refs/heads/master/logo.svg" width="48" alt="Vineless Icon"> Vineless
+# <img src="https://raw.githubusercontent.com/Ingan121/Vineless/refs/heads/master/images/icon.png" width="48" alt="Vineless Icon"> Vineless
 * A browser extension to play DRM-protected content without a real CDM
 * Works by redirecting the content keys to the browser's ClearKey handler
 
