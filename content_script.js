@@ -251,6 +251,16 @@
 
     const SERVICE_CERTIFICATE_CHALLENGE = new Uint8Array([0x08, 0x04]);
 
+    const wvRobustnessLevels = [
+        "",
+        "SW_SECURE_CRYPTO",
+        "SW_SECURE_DECODE",
+        "HW_SECURE_CRYPTO",
+        "HW_SECURE_DECODE",
+        "HW_SECURE_ALL"
+    ];
+    const hdcpLevels = ["0", "1.0", "1.1", "1.2", "1.3", "1.4", "2.0", "2.1", "2.2", "2.3"];
+
     (() => {
         const requestMediaKeySystemAccessUnaltered = navigator.requestMediaKeySystemAccess;
         if (!requestMediaKeySystemAccessUnaltered) {
@@ -281,6 +291,56 @@
             return false;
         }
 
+        // Filter out EME config properties that are disallowed by the user config
+        function filterEmeProps(keySystem, origConfig) {
+            if (!profileConfig.allowPersistence && !origConfig.some(c => !c.sessionTypes || (c.sessionTypes.length === 1 && c.sessionTypes.includes('temporary')))) {
+                console.warn("[Vineless] Denying persistent-license due to user preference");
+                return false;
+            }
+            if (keySystem.startsWith("com.widevine.alpha") && profileConfig.widevine.robustness) {
+                let maxLevelIndex = wvRobustnessLevels.indexOf(profileConfig.widevine.robustness);
+                let videoOk = false, audioOk = false;
+                // Check if any of the provided configs are acceptable
+                for (const config of origConfig) {
+                    if (config.videoCapabilities) {
+                        for (const cap of config.videoCapabilities || []) {
+                            if (cap.robustness) {
+                                const idx = wvRobustnessLevels.indexOf(cap.robustness);
+                                if (idx !== -1 && idx <= maxLevelIndex) {
+                                    videoOk = true;
+                                    break;
+                                }
+                            } else {
+                                videoOk = true; // robustness not specified
+                            }
+                        }
+                    } else {
+                        videoOk = true; // videoCapabilities not specified
+                    }
+                    if (config.audioCapabilities) {
+                        for (const cap of config.audioCapabilities || []) {
+                            if (cap.robustness) {
+                                const idx = wvRobustnessLevels.indexOf(cap.robustness);
+                                if (idx !== -1 && idx <= maxLevelIndex) {
+                                    audioOk = true;
+                                    break;
+                                }
+                            } else {
+                                audioOk = true; // robustness not specified
+                            }
+                        }
+                    } else {
+                        audioOk = true; // audioCapabilities not specified
+                    }
+                }
+                if (!videoOk || !audioOk) {
+                    console.warn("[Vineless] Blocked due to robustness level being higher than user preference:", profileConfig.widevine.robustness);
+                    return false;
+                }
+            }
+            return true;
+        }
+
         if (typeof Navigator !== 'undefined') {
             proxy(Navigator.prototype, 'requestMediaKeySystemAccess', async (_target, _this, _args) => {
                 console.log("[Vineless] requestMediaKeySystemAccess", structuredClone(_args));
@@ -298,8 +358,7 @@
                         _args[0] = "com.ingan121.vineless.invalid";
                         await _target.apply(_this, _args); // should throw here
                     }
-                    if (!profileConfig.allowPersistence && !origConfig.some(c => !c.sessionTypes || (c.sessionTypes.length === 1 && c.sessionTypes.includes('temporary')))) {
-                        console.warn("[Vineless] Denying persistent-license due to user preference");
+                    if (!filterEmeProps(origKeySystem, origConfig)) {
                         _args[0] = "com.ingan121.vineless.invalid";
                         await _target.apply(_this, _args); // should throw here
                     }
@@ -363,6 +422,16 @@
                                 contentType: ckConfig.audio.contentType,
                                 robustness: ckConfig.audio.robustness || ""
                             });
+                        }
+
+                        if (!filterEmeProps(origKeySystem, [ksc])) {
+                            console.warn("[Vineless] decodingInfo: blocked due to user config");
+                            return {
+                                supported: false,
+                                smooth: false,
+                                powerEfficient: false,
+                                keySystemAccess: null
+                            };
                         }
 
                         const sanitized = await sanitizeConfigForClearKey(ksc);
@@ -543,12 +612,17 @@
                 return false;
             });
             proxy(MediaKeys.prototype, 'getStatusForPolicy', async (_target, _this, _args) => {
-                console.log("[Vineless] getStatusForPolicy");
+                const level = _args[0]?.minHdcpVersion;
+                console.log("[Vineless] getStatusForPolicy", level);
                 const keySystem = _this._emeShim?.origKeySystem;
                 if (!await getEnabledForKeySystem(keySystem) || _this._ck) {
                     return await _target.apply(_this, _args);
                 }
-                return "usable";
+                const idx = hdcpLevels.indexOf(level);
+                if (idx !== -1 && idx <= profileConfig.hdcp) {
+                    return "usable";
+                }
+                return "output-restricted";
             });
 
             hookKeySystem(MediaKeys);

@@ -355,19 +355,21 @@ export class CustomHandlerManager {
         const prCustomDesc = document.getElementById('pr-custom-desc');
 
         for (const handler in CustomHandlers) {
-            if (CustomHandlers[handler].disabled) {
-                continue;
-            }
             const option = document.createElement('option');
             option.text = CustomHandlers[handler].name;
             option.value = handler;
+            option.hidden = CustomHandlers[handler].disabled;
             if (["widevine", undefined].includes(CustomHandlers[handler].for)) {
                 customCombobox.appendChild(option);
-                customSelect.classList.remove('hidden');
+                if (!option.hidden) {
+                    customSelect.classList.remove('hidden');
+                }
             }
             if (["playready", undefined].includes(CustomHandlers[handler].for)) {
                 prCustomCombobox.appendChild(option.cloneNode(true));
-                prCustomSelect.classList.remove('hidden');
+                if (!option.hidden) {
+                    prCustomSelect.classList.remove('hidden');
+                }
             }
         }
 
@@ -376,13 +378,35 @@ export class CustomHandlerManager {
     }
 
     static selectCustomHandler(name) {
-        document.getElementById('custom-combobox').value = name;
-        document.getElementById('custom-desc').textContent = CustomHandlers[name]?.description || "";
+        if (!name) return;
+        const customCombobox = document.getElementById('custom-combobox');
+        const customDesc = document.getElementById('custom-desc');
+
+        if (CustomHandlers[name]?.handler && CustomHandlers[name]?.for !== "playready") {
+            customCombobox.value = name;
+            customDesc.textContent = CustomHandlers[name]?.description || "";
+        } else {
+            const option = new Option("Invalid handler: " + name, name, true, true);
+            customCombobox.appendChild(option);
+            CustomHandlers[name] = { description: "This handler is not available in this build of Vineless. Please ensure that you have the same version of Vineless in all browsers with syncing enabled.", handler: null };
+            customDesc.textContent = CustomHandlers[name]?.description || "";
+        }
     }
 
     static selectPRCustomHandler(name) {
-        document.getElementById('pr-custom-combobox').value = name;
-        document.getElementById('pr-custom-desc').textContent = CustomHandlers[name]?.description || "";
+        if (!name) return;
+        const prCustomCombobox = document.getElementById('pr-custom-combobox');
+        const prCustomDesc = document.getElementById('pr-custom-desc');
+
+        if (CustomHandlers[name]?.handler && CustomHandlers[name]?.for !== "widevine") {
+            prCustomCombobox.value = name;
+            prCustomDesc.textContent = CustomHandlers[name]?.description || "";
+        } else {
+            const option = new Option("Invalid handler: " + name, name, true, true);
+            prCustomCombobox.appendChild(option);
+            CustomHandlers[name] = { description: "This handler is not available in this build of Vineless. Please ensure that you have the same version of Vineless in all browsers with syncing enabled.", handler: null };
+            prCustomDesc.textContent = CustomHandlers[name]?.description || "";
+        }
     }
 }
 
@@ -403,7 +427,8 @@ export class SettingsManager {
                         "custom": null
                     },
                     "type": "local",
-                    "serverCert": "if_provided"
+                    "serverCert": "if_provided",
+                    "robustness": "HW_SECURE_ALL"
                 },
                 "playready": {
                     "enabled": true,
@@ -417,6 +442,7 @@ export class SettingsManager {
                 "clearkey": {
                     "enabled": true
                 },
+                "hdcp": 9,
                 "blockDisabled": false,
                 "allowPersistence": false
             }
@@ -622,11 +648,11 @@ export class SettingsManager {
 
     static async getUICollapsed() {
         const result = await AsyncSyncStorage.getStorage(['uiCollapsed']);
-        return result.uiCollapsed || { devicesCollapsed: false, commandsCollapsed: true };
+        return result.uiCollapsed || { devicesCollapsed: false, commandsCollapsed: true, advancedCollapsed: true };
     }
 
-    static async setUICollapsed(devicesCollapsed, commandsCollapsed) {
-        const value = { devicesCollapsed, commandsCollapsed };
+    static async setUICollapsed(devicesCollapsed, commandsCollapsed, advancedCollapsed) {
+        const value = { devicesCollapsed, commandsCollapsed, advancedCollapsed };
         await AsyncSyncStorage.setStorage({ uiCollapsed: value });
     }
 }

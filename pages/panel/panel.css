@@ -157,7 +157,8 @@ h1 {
     gap: 5px;
 }
 
-#wv-server-cert {
+#wv-server-cert,
+#max-robustness {
     margin-top: 2px;
 }
 

@@ -343,6 +343,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 wvEnabled = false;
                             }
                             break;
+                        case "custom":
+                            if (!profileConfig.widevine.device.custom || !CustomHandlers[profileConfig.widevine.device.custom]?.handler) {
+                                wvEnabled = false;
+                            }
+                            break;
                     }
                 }
                 let prEnabled = profileConfig.playready.enabled;
@@ -358,13 +363,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                 prEnabled = false;
                             }
                             break;
+                        case "custom":
+                            if (!profileConfig.playready.device.custom || !CustomHandlers[profileConfig.playready.device.custom]?.handler) {
+                                prEnabled = false;
+                            }
+                            break;
                     }
                 }
                 sendResponse(JSON.stringify({
                     enabled: profileConfig.enabled,
                     widevine: {
                         enabled: wvEnabled,
-                        serverCert: profileConfig.widevine.serverCert
+                        serverCert: profileConfig.widevine.serverCert,
+                        robustness: profileConfig.widevine.robustness
                     },
                     playready: {
                         enabled: prEnabled
@@ -372,6 +383,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     clearkey: {
                         enabled: profileConfig.clearkey.enabled
                     },
+                    hdcp: profileConfig.hdcp ?? 9,
                     blockDisabled: profileConfig.blockDisabled,
                     allowPersistence: profileConfig.allowPersistence && origin !== null && !sender.tab?.incognito,
                 }));

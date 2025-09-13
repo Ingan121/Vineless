@@ -70,18 +70,6 @@
                     <label for="blockDisabled">Block disabled systems</label>
                 </div>
             </div>
-            <div>
-                <input type="checkbox" id="allowPersistence" name="allowPersistence">
-                <label for="allowPersistence">Allow persistent licenses</label>
-            </div>
-            <div>
-                <label>Widevine server certificate usage:</label>
-                <select id="wv-server-cert">
-                    <option value="always">Always</option>
-                    <option value="if_provided" selected>If Provided</option>
-                    <option value="never">Never</option>
-                </select>
-            </div>
         </fieldset>
         <fieldset id="wvd" class="device-fieldset">
             <legend>Widevine Local</legend>
@@ -163,6 +151,39 @@
             </div>
             <label for="downloader-name">Executable name: </label>
             <input type="text" class="text-box" id="downloader-name">
+        </fieldset>
+    </details>
+    <details id="advanced" class="collapsible-section">
+        <summary>Advanced Options</summary>
+        <fieldset>
+            <div>
+                <input type="checkbox" id="allowPersistence" name="allowPersistence">
+                <label for="allowPersistence">Allow persistent licenses</label>
+            </div>
+            <div>
+                <label>Widevine server certificate usage:</label>
+                <select id="wv-server-cert">
+                    <option value="always">Always</option>
+                    <option value="if_provided" selected>If Provided</option>
+                    <option value="never">Never</option>
+                </select>
+            </div>
+            <div>
+                <label>Max Widevine robustness:</label>
+                <select id="max-robustness">
+                    <option value="none">None (L3)</option>
+                    <option value="SW_SECURE_CRYPTO">SW_SECURE_CRYPTO (L3)</option>
+                    <option value="SW_SECURE_DECODE">SW_SECURE_DECODE (L3)</option>
+                    <option value="HW_SECURE_CRYPTO">HW_SECURE_CRYPTO (L2)</option>
+                    <option value="HW_SECURE_DECODE">HW_SECURE_DECODE (L1)</option>
+                    <option value="HW_SECURE_ALL" selected>HW_SECURE_ALL (L1)</option>
+                </select>
+            </div>
+            <div>
+                <label>Max HDCP level:</label>
+                <input type="range" id="max-hdcp" min="0" max="9" value="9">
+                <span id="max-hdcp-label">2.3</span>
+            </div>
         </fieldset>
     </details>
     <fieldset>
