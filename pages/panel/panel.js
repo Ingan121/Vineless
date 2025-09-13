@@ -614,7 +614,7 @@ async function applyConfig() {
         "clearkey": {
             "enabled": ckEnabled.checked
         },
-        "hdcp": parseInt(maxHdcp.value) || 9,
+        "hdcp": parseInt(maxHdcp.value),
         "blockDisabled": blockDisabled.checked,
         "allowPersistence": allowPersistence.checked
     };
