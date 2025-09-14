@@ -643,8 +643,11 @@ async function getSessionCount() {
 }
 
 async function updateIcon() {
-    if (await getSessionCount()) {
+    const sessionCnt = await getSessionCount();
+    if (sessionCnt > 0) {
         icon.src = "../../images/icon-active.png";
+    } else if (sessionCnt === 0) {
+        icon.src = "../../images/icon-closed.png";
     } else if (await SettingsManager.getGlobalEnabled()) {
         icon.src = "../../images/icon.png";
     } else {

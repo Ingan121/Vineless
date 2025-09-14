@@ -387,9 +387,9 @@ export class CustomHandlerManager {
             customDesc.textContent = CustomHandlers[name]?.description || "";
         } else {
             const option = new Option("Invalid handler: " + name, name, true, true);
+            option.hidden = true;
             customCombobox.appendChild(option);
-            CustomHandlers[name] = { description: "This handler is not available in this build of Vineless. Please ensure that you have the same version of Vineless in all browsers with syncing enabled.", handler: null };
-            customDesc.textContent = CustomHandlers[name]?.description || "";
+            customDesc.textContent = "This handler is not available in this build of Vineless. Please ensure that you have the same version of Vineless in all browsers with syncing enabled.";
         }
     }
 
@@ -403,9 +403,9 @@ export class CustomHandlerManager {
             prCustomDesc.textContent = CustomHandlers[name]?.description || "";
         } else {
             const option = new Option("Invalid handler: " + name, name, true, true);
+            option.hidden = true;
             prCustomCombobox.appendChild(option);
-            CustomHandlers[name] = { description: "This handler is not available in this build of Vineless. Please ensure that you have the same version of Vineless in all browsers with syncing enabled.", handler: null };
-            prCustomDesc.textContent = CustomHandlers[name]?.description || "";
+            prCustomDesc.textContent = "This handler is not available in this build of Vineless. Please ensure that you have the same version of Vineless in all browsers with syncing enabled.";
         }
     }
 }
@@ -776,17 +776,6 @@ export function getWvPsshFromConcatPssh(psshBase64) {
 }
 
 export async function setIcon(filename, tabId = undefined) {
-    const isMV3 = typeof chrome.action !== "undefined";
-    if (!isMV3) {
-        chrome.browserAction.setIcon({
-            path: {
-                128: filename
-            },
-            ...(tabId ? { tabId } : {})
-        });
-        return;
-    }
-
     const url = chrome.runtime.getURL(filename);
     const res = await fetch(url);
     const blob = await res.blob();
@@ -806,21 +795,25 @@ export async function setIcon(filename, tabId = undefined) {
 }
 
 export async function setBadgeText(text, tabId = undefined) {
-    const isMV3 = typeof chrome.action !== "undefined";
-    if (!isMV3) {
-        chrome.browserAction.setBadgeText({
-            text,
-            ...(tabId ? { tabId } : {})
-        });
-        chrome.browserAction.setBadgeBackgroundColor({ color: "#2169eb" });
-        return;
+    let color = "#2169eb";
+    const prev = await getBadgeText(tabId);
+    if (prev === text) return;
+    if (text === "-") {
+        color = "#ffdf00";
+    } else if (["WV", "PR", "CK"].includes(prev)) {
+        text = "+"; // indicate multiple CDMs in use
     }
-
     chrome.action.setBadgeText({
         text,
         ...(tabId ? { tabId } : {})
     });
-    chrome.action.setBadgeBackgroundColor({ color: "#2169eb" });
+    chrome.action.setBadgeBackgroundColor({ color, ...(tabId ? { tabId } : {}) });
+}
+
+export async function getBadgeText(tabId = undefined) {
+    return await chrome.action.getBadgeText({
+        ...(tabId ? { tabId } : {})
+    });
 }
 
 export async function getForegroundTab() {

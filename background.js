@@ -318,8 +318,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 if (sender?.tab?.id) {
                     if (sessionCnt[sender.tab.id]) {
                         if (--sessionCnt[sender.tab.id] === 0) {
-                            setIcon("images/icon.png", sender.tab.id);
-                            setBadgeText(null, sender.tab.id);
+                            setIcon("images/icon-closed.png", sender.tab.id);
+                            setBadgeText("-", sender.tab.id);
                         }
                     }
                 }
