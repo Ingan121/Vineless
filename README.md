@@ -20,11 +20,12 @@
 + Incompatible browsers:
   + Tor Browser (does not support ClearKey)
   + Firefox for Android, and its forks, such as Kiwi Browser (does not support ClearKey)
+  + Safari and other WebKit-based browsers (its ClearKey implementation is weird and non-standard I think)
   + Internet Explorer, obviously.
 + Works with any service that accepts challenges from Android devices on the same endpoint.
-+ Incompatible services:
-  + Netflix (unless a browser/PC device is provided, which is rare)
-  + VdoCipher (ditto)
++ Services that need a browser/PC device (rare) to work:
+  + Netflix
+  + VdoCipher (if 2074 error occurs)
 + Some services may detect your browser and interfere with PlayReady playback. Try using a user-agent changer extension, or use a Chromium-based browser for PlayReady playback.
 + Firefox-based browsers may fail to play some PlayReady-protected video, with an internal error saying `ChromiumCDMParent::RecvDecodeFailed with status decode error`. This is a problem with the browser's ClearKey handler, and Vineless can do nothing about it. Please use a Chromium-based browser if this error occurs.
 + Incompatible extensions:
