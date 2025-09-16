@@ -88,7 +88,7 @@ reloadButton.addEventListener('click', async function () {
 });
 
 const version = document.getElementById('version');
-version.textContent = "v" + chrome.runtime.getManifest().version;
+version.textContent = "v" + chrome.runtime.getManifest().version_name;
 
 const wvEnabled = document.getElementById('wvEnabled');
 const prEnabled = document.getElementById('prEnabled');
@@ -107,11 +107,12 @@ const remoteCombobox = document.getElementById('remote-combobox');
 const prdCombobox = document.getElementById('prd-combobox');
 const prRemoteCombobox = document.getElementById('pr-remote-combobox');
 
-const allowPersistence = document.getElementById('allowPersistence');
 const wvServerCert = document.getElementById('wv-server-cert');
 const maxHdcp = document.getElementById('max-hdcp');
 const maxHdcpLabel = document.getElementById('max-hdcp-label');
 const maxRobustness = document.getElementById('max-robustness');
+const allowSL3K = document.getElementById('allowSL3K');
+const allowPersistence = document.getElementById('allowPersistence');
 
 [
     enabled,
@@ -120,7 +121,7 @@ const maxRobustness = document.getElementById('max-robustness');
     prdSelect, prRemoteSelect, prCustomSelect,
     wvdCombobox, remoteCombobox,
     prdCombobox, prRemoteCombobox,
-    allowPersistence, wvServerCert, maxRobustness
+    wvServerCert, maxRobustness, allowSL3K, allowPersistence
 ].forEach(elem => {
     elem.addEventListener('change', async function () {
         applyConfig();
@@ -567,11 +568,12 @@ async function loadConfig(scope = "global") {
     prEnabled.checked = profileConfig.playready.enabled;
     ckEnabled.checked = profileConfig.clearkey.enabled;
     blockDisabled.checked = profileConfig.blockDisabled;
-    allowPersistence.checked = profileConfig.allowPersistence;
     wvServerCert.value = profileConfig.widevine.serverCert || "if_provided";
     maxHdcp.value = profileConfig.hdcp ?? 9;
     maxHdcpLabel.textContent = getHdcpLevelLabel(maxHdcp.value);
     maxRobustness.value = profileConfig.widevine.robustness || "HW_SECURE_ALL";
+    allowSL3K.checked = profileConfig.playready.allowSL3K !== false;
+    allowPersistence.checked = profileConfig.allowPersistence;
     SettingsManager.setSelectedDeviceType(profileConfig.widevine.type);
     await DeviceManager.selectWidevineDevice(profileConfig.widevine.device.local);
     await RemoteCDMManager.selectRemoteCDM(profileConfig.widevine.device.remote);
@@ -609,7 +611,8 @@ async function applyConfig() {
                 "remote": prRemoteCombobox.options[prRemoteCombobox.selectedIndex]?.text || null,
                 "custom": prCustomCombobox.value
             },
-            "type": prType
+            "type": prType,
+            "allowSL3K": allowSL3K.checked
         },
         "clearkey": {
             "enabled": ckEnabled.checked

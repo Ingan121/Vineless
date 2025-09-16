@@ -97,7 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     let device = null;
                     let pssh = initData;
                     const extra = {};
-                    if (keySystem.startsWith("com.microsoft.playready")) {
+                    if (keySystem.includes("playready")) {
                         setBadgeText("PR", sender.tab.id);
                         const device_type = profileConfig.playready.type;
                         switch (device_type) {
@@ -272,9 +272,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const { keySystem, sessionId } = parsed;
                 if (keySystem === "org.w3.clearkey") {
                     setBadgeText("CK", sender.tab.id);
-                } else if (keySystem.startsWith("com.microsoft.playready")) {
+                } else if (keySystem.includes("playready")) {
                     setBadgeText("PR", sender.tab.id);
-                } else if (keySystem.startsWith("com.widevine.alpha")) {
+                } else if (keySystem.includes("widevine")) {
                     setBadgeText("WV", sender.tab.id);
                 }
 
@@ -378,7 +378,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         robustness: profileConfig.widevine.robustness
                     },
                     playready: {
-                        enabled: prEnabled
+                        enabled: prEnabled,
+                        allowSL3K: profileConfig.playready.allowSL3K !== false
                     },
                     clearkey: {
                         enabled: profileConfig.clearkey.enabled

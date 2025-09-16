@@ -261,6 +261,43 @@
     ];
     const hdcpLevels = ["0", "1.0", "1.1", "1.2", "1.3", "1.4", "2.0", "2.1", "2.2", "2.3"];
 
+    const keySystems = {
+        widevine: [
+            "com.widevine.alpha",
+            "com.widevine.alpha.experiment",
+            "com.widevine.alpha.experiment2",
+            "com.widevine.alpha.hr",
+            "com.widevine.alpha.hrnoncompositing",
+            "com.youtube.widevine.l3",
+        ],
+        playready: [
+            "com.microsoft.playready.recommendation.2000",
+            "com.microsoft.playready.recommendation.2000.clearlead",
+            "com.microsoft.playready.2000",
+            "com.microsoft.playready.software",
+            "com.microsoft.playready.recommendation.150",
+            "com.microsoft.playready.recommendation.clearlead",
+            "com.microsoft.playready.150",
+            "com.microsoft.playready.recommendation",
+            "com.microsoft.playready",
+            "com.chromecast.playready",
+            "com.youtube.playready",
+        ],
+        playready3K: [
+            "com.microsoft.playready.recommendation.3000",
+            "com.microsoft.playready.recommendation.3000.clearlead",
+            "com.microsoft.playready.recommendation.hardware",
+            "com.microsoft.playready.3000",
+            "com.microsoft.playready.hardware",
+        ]
+    };
+    function isWidevineKeySystem(keySystem) {
+        return keySystems.widevine.includes(keySystem);
+    }
+    function isPlayReadyKeySystem(keySystem) {
+        return keySystems.playready.includes(keySystem) || keySystems.playready3K.includes(keySystem);
+    }
+
     (() => {
         const requestMediaKeySystemAccessUnaltered = navigator.requestMediaKeySystemAccess;
         if (!requestMediaKeySystemAccessUnaltered) {
@@ -280,9 +317,9 @@
             if (!profileConfig.enabled) {
                 return false;
             }
-            if (keySystem.startsWith("com.widevine.alpha")) {
+            if (isWidevineKeySystem(keySystem)) {
                 return profileConfig.widevine.enabled;
-            } else if (keySystem.startsWith("com.microsoft.playready")) {
+            } else if (isPlayReadyKeySystem(keySystem)) {
                 return profileConfig.playready.enabled;
             } else if (keySystem === "org.w3.clearkey") {
                 return profileConfig.clearkey.enabled;
@@ -297,12 +334,13 @@
                 console.warn("[Vineless] Denying persistent-license due to user preference");
                 return false;
             }
-            if (keySystem.startsWith("com.widevine.alpha") && profileConfig.widevine.robustness) {
+            console.debug("[Vineless] filterEmeProps", keySystem, origConfig);
+            if (isWidevineKeySystem(keySystem) && profileConfig.widevine.robustness) {
                 let maxLevelIndex = wvRobustnessLevels.indexOf(profileConfig.widevine.robustness);
                 let videoOk = false, audioOk = false;
                 // Check if any of the provided configs are acceptable
                 for (const config of origConfig) {
-                    if (config.videoCapabilities) {
+                    if (config.videoCapabilities?.length) {
                         for (const cap of config.videoCapabilities || []) {
                             if (cap.robustness) {
                                 const idx = wvRobustnessLevels.indexOf(cap.robustness);
@@ -317,7 +355,7 @@
                     } else {
                         videoOk = true; // videoCapabilities not specified
                     }
-                    if (config.audioCapabilities) {
+                    if (config.audioCapabilities?.length) {
                         for (const cap of config.audioCapabilities || []) {
                             if (cap.robustness) {
                                 const idx = wvRobustnessLevels.indexOf(cap.robustness);
@@ -333,8 +371,48 @@
                         audioOk = true; // audioCapabilities not specified
                     }
                 }
+                console.debug("[Vineless] Robustness check result:", videoOk, audioOk);
                 if (!videoOk || !audioOk) {
                     console.warn("[Vineless] Blocked due to robustness level being higher than user preference:", profileConfig.widevine.robustness);
+                    return false;
+                }
+            } else if (isPlayReadyKeySystem(keySystem) && !profileConfig.playready.allowSL3K) {
+                if (keySystems.playready3K.includes(keySystem)) {
+                    console.warn("[Vineless] Blocked PlayReady SL3000 due to user preference");
+                    return false;
+                }
+                let videoOk = false, audioOk = false;
+                // Check if any of the provided configs are acceptable
+                for (const config of origConfig) {
+                    if (config.videoCapabilities?.length) {
+                        for (const cap of config.videoCapabilities || []) {
+                            if (cap.robustness) {
+                                if ((cap.robustness + '') != "3000") {
+                                    videoOk = true;
+                                }
+                            } else {
+                                videoOk = true; // robustness not specified
+                            }
+                        }
+                    } else {
+                        videoOk = true; // videoCapabilities not specified
+                    }
+                    if (config.audioCapabilities?.length) {
+                        for (const cap of config.audioCapabilities || []) {
+                            if (cap.robustness) {
+                                if ((cap.robustness + '') != "3000") {
+                                    audioOk = true;
+                                }
+                            } else {
+                                audioOk = true; // robustness not specified
+                            }
+                        }
+                    } else {
+                        audioOk = true; // audioCapabilities not specified
+                    }
+                }
+                if (!videoOk || !audioOk) {
+                    console.warn("[Vineless] Blocked PlayReady SL3000 due to user preference");
                     return false;
                 }
             }
@@ -350,7 +428,7 @@
                     const enabled = await getEnabledForKeySystem(origKeySystem);
                     if (!enabled && profileConfig.blockDisabled) {
                         console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
-                        if (origKeySystem.startsWith("com.widevine.alpha") && (navigator.userAgent.includes("Firefox") || typeof InstallTrigger !== 'undefined')) {
+                        if (isWidevineKeySystem(origKeySystem) && (navigator.userAgent.includes("Firefox") || typeof InstallTrigger !== 'undefined')) {
                             // Throw a fake Firefox-specific Widevine error message
                             throw new DOMException("Widevine EME disabled", "NotSupportedError");
                         }
@@ -396,7 +474,7 @@
                 const origKeySystem = config?.keySystemConfiguration?.keySystem;
 
                 if (await getEnabledForKeySystem(origKeySystem)) {
-                    console.log("[Vineless] Intercepted decodingInfo for", origKeySystem);
+                    console.log("[Vineless] Intercepted decodingInfo for", origKeySystem, config);
 
                     try {
                         const ckConfig = structuredClone(config);
@@ -414,13 +492,13 @@
                         if (ckConfig.video?.contentType) {
                             ksc.videoCapabilities.push({
                                 contentType: ckConfig.video.contentType,
-                                robustness: ckConfig.video.robustness || ""
+                                robustness: config.keySystemConfiguration?.video?.robustness || ""
                             });
                         }
                         if (ckConfig.audio?.contentType) {
                             ksc.audioCapabilities.push({
                                 contentType: ckConfig.audio.contentType,
-                                robustness: ckConfig.audio.robustness || ""
+                                robustness: config.keySystemConfiguration?.audio?.robustness || ""
                             });
                         }
 
@@ -604,7 +682,7 @@
                 if (!await getEnabledForKeySystem(keySystem) || _this._ck) {
                     return await _target.apply(_this, _args);
                 }
-                if (keySystem.startsWith("com.widevine.alpha")) {
+                if (isWidevineKeySystem(keySystem)) {
                     _this._emeShim.serverCert = uint8ArrayToBase64(new Uint8Array(_args[0]));
                     return true;
                 }
@@ -637,7 +715,7 @@
                     initData: uint8ArrayToBase64(new Uint8Array(initData))
                 };
                 if (!["webm", "cenc"].includes(initDataType.toLowerCase()) ||
-                    (keySystem.startsWith("com.microsoft.playready") && initDataType.toLowerCase() !== "cenc")
+                    (isPlayReadyKeySystem(keySystem) && initDataType.toLowerCase() !== "cenc")
                 ) {
                     throw new Error("Unsupported initDataType: " + initDataType);
                 }
@@ -646,7 +724,8 @@
                 }
                 const challenge = await emitAndWaitForResponse("REQUEST", JSON.stringify(data));
                 if (!challenge || challenge === "null") {
-                    throw new Error("No challenge received from the background script");
+                    console.error("No challenge received from the background script");
+                    throw new TypeError(""); // Firefox does this on some CDM errors
                 }
                 const challengeBytes = base64toUint8Array(challenge);
 
@@ -691,7 +770,7 @@
                             // Some require unflipped one, others (PR only) require flipped one
                             // So include both unless duplicate
                             const raw = hexToUint8Array(kid);
-                            if (keySystem.startsWith("com.microsoft.playready")) {
+                            if (isPlayReadyKeySystem(keySystem)) {
                                 const flipped = flipUUIDByteOrder(raw);
 
                                 for (const keyBytes of [raw, flipped]) {
@@ -747,7 +826,7 @@
                         writable: false
                     });
 
-                    if (keySystem.startsWith("com.widevine.alpha") && profileConfig.widevine.serverCert === "always" && !_this._mediaKeys._emeShim.serverCert) {
+                    if (isWidevineKeySystem(keySystem) && profileConfig.widevine.serverCert === "always" && !_this._mediaKeys._emeShim.serverCert) {
                         console.debug("[Vineless] generateRequest: Did not receive server certificate in 'always' mode; sending challenge");
                         _this._serverCertChallenge = [..._args];
                         const evt = new MediaKeyMessageEvent("message", {

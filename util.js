@@ -8,7 +8,11 @@ export class AsyncSyncStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.set(items, () => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    const msg = chrome.runtime.lastError.message;
+                    if (msg.toLowerCase().includes("quota")) {
+                        notifyUser("Storage quota exceeded.", "Please free up some space by removing unused devices.", true);
+                    }
+                    reject(new Error(msg));
                 } else {
                     resolve();
                 }
@@ -20,7 +24,7 @@ export class AsyncSyncStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(keys, (result) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve(result);
                 }
@@ -32,7 +36,7 @@ export class AsyncSyncStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.remove(keys, (result) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve(result);
                 }
@@ -46,7 +50,7 @@ export class AsyncLocalStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.local.set(items, () => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve();
                 }
@@ -58,7 +62,7 @@ export class AsyncLocalStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.local.get(keys, (result) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve(result);
                 }
@@ -70,7 +74,7 @@ export class AsyncLocalStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.local.remove(keys, (result) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve(result);
                 }
@@ -84,7 +88,7 @@ export class AsyncSessionStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.session.set(items, () => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve();
                 }
@@ -96,7 +100,7 @@ export class AsyncSessionStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.session.get(keys, (result) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve(result);
                 }
@@ -108,7 +112,7 @@ export class AsyncSessionStorage {
         return new Promise((resolve, reject) => {
             chrome.storage.session.remove(keys, (result) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError));
+                    reject(new Error(chrome.runtime.lastError.message));
                 } else {
                     resolve(result);
                 }
@@ -437,7 +441,8 @@ export class SettingsManager {
                         "remote": null,
                         "custom": null
                     },
-                    "type": "local"
+                    "type": "local",
+                    "allowSL3K": true
                 },
                 "clearkey": {
                     "enabled": true

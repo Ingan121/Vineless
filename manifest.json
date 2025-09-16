@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "Vineless",
   "version": "2.1",
+  "version_name": "2.1 Pre-release",
   "description": "Play protected contents without a real CDM",
   "author": "Ingan121",
   "homepage_url": "https://github.com/Ingan121/Vineless",
