@@ -88,7 +88,7 @@ reloadButton.addEventListener('click', async function () {
 });
 
 const version = document.getElementById('version');
-version.textContent = "v" + chrome.runtime.getManifest().version + " Pre-release";
+version.textContent = "v" + chrome.runtime.getManifest().version;
 
 const wvEnabled = document.getElementById('wvEnabled');
 const prEnabled = document.getElementById('prEnabled');
