@@ -23,7 +23,7 @@
   + Safari and other WebKit-based browsers (its ClearKey implementation is weird and non-standard I think)
   + Internet Explorer, obviously.
 + Works with any service that accepts challenges from Android devices on the same endpoint.
-+ Services that need a browser/PC device (rare) to work:
++ Services incompatible with mobile/TV devices:
   + Netflix
   + VdoCipher (if 2074 error occurs)
 + Some services may detect your browser and interfere with PlayReady playback. Try using a user-agent changer extension, or use a Chromium-based browser for PlayReady playback.
