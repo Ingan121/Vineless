@@ -249,6 +249,8 @@
         return out;
     }
 
+    const isFirefox = navigator.userAgent.includes("Firefox") || typeof InstallTrigger !== 'undefined';
+
     const SERVICE_CERTIFICATE_CHALLENGE = new Uint8Array([0x08, 0x04]);
 
     const wvRobustnessLevels = [
@@ -376,44 +378,53 @@
                     console.warn("[Vineless] Blocked due to robustness level being higher than user preference:", profileConfig.widevine.robustness);
                     return false;
                 }
-            } else if (isPlayReadyKeySystem(keySystem) && !profileConfig.playready.allowSL3K) {
-                if (keySystems.playready3K.includes(keySystem)) {
+            } else if (isPlayReadyKeySystem(keySystem)) {
+                if (!profileConfig.playready.allowSL3K && keySystems.playready3K.includes(keySystem)) {
                     console.warn("[Vineless] Blocked PlayReady SL3000 due to user preference");
                     return false;
                 }
-                let videoOk = false, audioOk = false;
-                // Check if any of the provided configs are acceptable
-                for (const config of origConfig) {
-                    if (config.videoCapabilities?.length) {
-                        for (const cap of config.videoCapabilities || []) {
-                            if (cap.robustness) {
-                                if ((cap.robustness + '') != "3000") {
-                                    videoOk = true;
+                // Firefox only accepts "", "2000", and "3000" (if supported) as robustness values
+                // Edge accepts any value, including invalid ones and "3000" in non-SL3000-capable systems
+                if (isFirefox) {
+                    let videoOk = false, audioOk = false;
+                    // Check if any of the provided configs are acceptable
+                    for (const config of origConfig) {
+                        if (config.videoCapabilities?.length) {
+                            for (const cap of config.videoCapabilities || []) {
+                                if (cap.robustness) {
+                                    switch (cap.robustness + '') {
+                                        case "2000":
+                                            videoOk = true;
+                                            break;
+                                        case "3000":
+                                            videoOk = profileConfig.playready.allowSL3K;
+                                    }
+                                } else {
+                                    videoOk = true; // robustness not specified or empty
                                 }
-                            } else {
-                                videoOk = true; // robustness not specified
                             }
+                        } else {
+                            videoOk = true; // videoCapabilities not specified
                         }
-                    } else {
-                        videoOk = true; // videoCapabilities not specified
-                    }
-                    if (config.audioCapabilities?.length) {
-                        for (const cap of config.audioCapabilities || []) {
-                            if (cap.robustness) {
-                                if ((cap.robustness + '') != "3000") {
-                                    audioOk = true;
+                        if (config.audioCapabilities?.length) {
+                            for (const cap of config.audioCapabilities || []) {
+                                if (cap.robustness) {
+                                    // Only "2000" is supported for audio
+                                    if ((cap.robustness + '') === "2000") {
+                                        audioOk = true;
+                                    }
+                                } else {
+                                    audioOk = true; // robustness not specified or empty
                                 }
-                            } else {
-                                audioOk = true; // robustness not specified
                             }
+                        } else {
+                            audioOk = true; // audioCapabilities not specified
                         }
-                    } else {
-                        audioOk = true; // audioCapabilities not specified
                     }
-                }
-                if (!videoOk || !audioOk) {
-                    console.warn("[Vineless] Blocked PlayReady SL3000 due to user preference");
-                    return false;
+                    if (!videoOk || !audioOk) {
+                        console.warn("[Vineless] Blocked invalid PlayReady robustness level");
+                        return false;
+                    }
                 }
             }
             return true;
@@ -428,7 +439,7 @@
                     const enabled = await getEnabledForKeySystem(origKeySystem);
                     if (!enabled && profileConfig.blockDisabled) {
                         console.warn("[Vineless] Blocked a non-Vineless enabled EME keySystem:", origKeySystem);
-                        if (isWidevineKeySystem(origKeySystem) && (navigator.userAgent.includes("Firefox") || typeof InstallTrigger !== 'undefined')) {
+                        if (isWidevineKeySystem(origKeySystem) && isFirefox) {
                             // Throw a fake Firefox-specific Widevine error message
                             throw new DOMException("Widevine EME disabled", "NotSupportedError");
                         }
