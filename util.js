@@ -137,14 +137,20 @@ export class DeviceManager {
         return result[name] || "";
     }
 
-    static setWidevineDevice(name, value){
+    static setWidevineDevice(name, value) {
         const wvdCombobox = document.getElementById('wvd-combobox');
         const wvdElement = document.createElement('option');
+
+        const wvdRemove = document.getElementById('remove');
+        const wvdDownload = document.getElementById('download');
 
         wvdElement.text = name;
         wvdElement.value = value;
 
         wvdCombobox.appendChild(wvdElement);
+
+        wvdRemove.disabled = false;
+        wvdDownload.disabled = false;
     }
 
     static async loadSetAllWidevineDevices() {
@@ -204,10 +210,16 @@ export class PRDeviceManager {
         const prdCombobox = document.getElementById('prd-combobox');
         const prdElement = document.createElement('option');
 
+        const prdRemove = document.getElementById('prdRemove');
+        const prdDownload = document.getElementById('prdDownload');
+
         prdElement.text = name;
         prdElement.value = value;
 
         prdCombobox.appendChild(prdElement);
+
+        prdRemove.disabled = false;
+        prdDownload.disabled = false;
     }
 
     static async loadSetAllPlayreadyDevices() {
@@ -268,6 +280,11 @@ export class RemoteCDMManager {
         const prRemoteCombobox = document.getElementById('pr-remote-combobox');
         const remoteElement = document.createElement('option');
 
+        const remoteRemove = document.getElementById('remoteRemove');
+        const remoteDownload = document.getElementById('remoteDownload');
+        const prRemoteRemove = document.getElementById('prRemoteRemove');
+        const prRemoteDownload = document.getElementById('prRemoteDownload');
+
         remoteElement.text = name;
         remoteElement.value = value;
 
@@ -276,8 +293,12 @@ export class RemoteCDMManager {
         if (only && type !== only) return;
         if (type === "PLAYREADY") {
             prRemoteCombobox.appendChild(remoteElement);
+            prRemoteRemove.disabled = false;
+            prRemoteDownload.disabled = false;
         } else {
             remoteCombobox.appendChild(remoteElement);
+            remoteRemove.disabled = false;
+            remoteDownload.disabled = false;
         }
     }
 

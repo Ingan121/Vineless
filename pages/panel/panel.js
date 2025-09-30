@@ -156,7 +156,7 @@ for (const a of document.getElementsByTagName('a')) {
 }
 // #endregion Main
 
-// #region Widevine Device
+// #region Widevine Local
 document.getElementById('fileInput').addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: "OPEN_PICKER_WVD" });
     window.close();
@@ -168,6 +168,10 @@ remove.addEventListener('click', async function () {
     wvdCombobox.innerHTML = '';
     await DeviceManager.loadSetAllWidevineDevices();
     applyConfig();
+    if (wvdCombobox.options.length === 0) {
+        remove.disabled = true;
+        download.disabled = true;
+    }
 });
 
 const download = document.getElementById('download');
@@ -179,9 +183,40 @@ download.addEventListener('click', async function () {
     SettingsManager.downloadFile(
         base64toUint8Array(await DeviceManager.loadWidevineDevice(widevineDevice)),
         widevineDevice + ".wvd"
-    )
+    );
 });
-// #endregion Widevine Device
+// #endregion Widevine Local
+
+// #region Playready Local
+document.getElementById('prdInput').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: "OPEN_PICKER_PRD" });
+    window.close();
+});
+
+const prdRemove = document.getElementById('prdRemove');
+prdRemove.addEventListener('click', async function() {
+    await PRDeviceManager.removePlayreadyDevice(prdCombobox.options[prdCombobox.selectedIndex]?.text || "");
+    prdCombobox.innerHTML = '';
+    await PRDeviceManager.loadSetAllPlayreadyDevices();
+    applyConfig();
+    if (prdCombobox.options.length === 0) {
+        prdRemove.disabled = true;
+        prdDownload.disabled = true;
+    }
+});
+
+const prdDownload = document.getElementById('prdDownload');
+prdDownload.addEventListener('click', async function() {
+    const playreadyDevice = prdCombobox.options[prdCombobox.selectedIndex]?.text;
+    if (!playreadyDevice) {
+        return;
+    }
+    SettingsManager.downloadFile(
+        base64toUint8Array(await PRDeviceManager.loadPlayreadyDevice(playreadyDevice)),
+        playreadyDevice + ".prd"
+    );
+});
+// #endregion Playready Local
 
 // #region Remote CDM
 [
@@ -200,6 +235,10 @@ remoteRemove.addEventListener('click', async function() {
     remoteCombobox.innerHTML = '';
     await RemoteCDMManager.loadSetWVRemoteCDMs();
     applyConfig();
+    if (remoteCombobox.options.length === 0) {
+        remoteRemove.disabled = true;
+        remoteDownload.disabled = true;
+    }
 });
 const prRemoteRemove = document.getElementById('prRemoteRemove');
 prRemoteRemove.addEventListener('click', async function() {
@@ -207,6 +246,10 @@ prRemoteRemove.addEventListener('click', async function() {
     prRemoteCombobox.innerHTML = '';
     await RemoteCDMManager.loadSetPRRemoteCDMs();
     applyConfig();
+    if (prRemoteCombobox.options.length === 0) {
+        prRemoteRemove.disabled = true;
+        prRemoteDownload.disabled = true;
+    }
 });
 
 async function downloadRemote(remoteCdmName) {
@@ -233,33 +276,6 @@ prRemoteDownload.addEventListener('click', async function() {
     downloadRemote(remoteCdm);
 });
 // #endregion Remote CDM
-
-// #region Playready Device
-document.getElementById('prdInput').addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: "OPEN_PICKER_PRD" });
-    window.close();
-});
-
-const prdRemove = document.getElementById('prdRemove');
-prdRemove.addEventListener('click', async function() {
-    await PRDeviceManager.removePlayreadyDevice(prdCombobox.options[prdCombobox.selectedIndex]?.text || "");
-    prdCombobox.innerHTML = '';
-    await PRDeviceManager.loadSetAllPlayreadyDevices();
-    applyConfig();
-});
-
-const prdDownload = document.getElementById('prdDownload');
-prdDownload.addEventListener('click', async function() {
-    const playreadyDevice = prdCombobox.options[prdCombobox.selectedIndex]?.text;
-    if (!playreadyDevice) {
-        return;
-    }
-    SettingsManager.downloadFile(
-        base64toUint8Array(await PRDeviceManager.loadPlayreadyDevice(playreadyDevice)),
-        playreadyDevice + ".prd"
-    )
-});
-// #endregion Playready Device
 
 // #region Custom Handlers
 const customCombobox = document.getElementById('custom-combobox');
