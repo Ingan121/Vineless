@@ -449,7 +449,7 @@ export class SettingsManager {
                     "device": {
                         "local": null,
                         "remote": null,
-                        "custom": null
+                        "custom": "knownkeys"
                     },
                     "type": "local",
                     "serverCert": "if_provided",

@@ -1,7 +1,3 @@
-import "./lib/forge.min.js";
-import "./lib/widevine/protobuf.min.js";
-import "./lib/widevine/license_protocol.js";
-
 import {
     base64toUint8Array,
     uint8ArrayToHex,

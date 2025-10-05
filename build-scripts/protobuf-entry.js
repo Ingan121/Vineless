@@ -1,0 +1,1 @@
+export { roots, util, Reader, Writer } from 'protobufjs/minimal';

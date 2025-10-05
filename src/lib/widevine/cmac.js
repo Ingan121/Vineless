@@ -1,3 +1,5 @@
+import forge from "../forge.min.js";
+
 export class AES_CMAC {
     BLOCK_SIZE = 16;
     XOR_RIGHT = new Uint8Array([
@@ -13,8 +15,8 @@ export class AES_CMAC {
         this._key = key;
     }
 
-    calculate(message) {
-        this._subkeys = this._generateSubkeys();
+    async calculate(message) {
+        this._subkeys = await this._generateSubkeys();
         const blockCount = this._getBlockCount(message);
 
         let x = this.EMPTY_BLOCK_SIZE_BUFFER;
@@ -24,17 +26,17 @@ export class AES_CMAC {
             const from = i * this.BLOCK_SIZE;
             const block = message.subarray(from, from + this.BLOCK_SIZE);
             y = this._xor(x, block);
-            x = this._aes(y);
+            x = await this._aes(y);
         }
 
         y = this._xor(x, this._getLastBlock(message));
-        x = this._aes(y);
+        x = await this._aes(y);
 
         return x;
     }
 
-    _generateSubkeys() {
-        const l = this._aes(this.EMPTY_BLOCK_SIZE_BUFFER);
+    async _generateSubkeys() {
+        const l = await this._aes(this.EMPTY_BLOCK_SIZE_BUFFER);
 
         let first = this._bitShiftLeft(l);
         if (l[0] & 0x80) {
@@ -54,7 +56,7 @@ export class AES_CMAC {
         return blockCount === 0 ? 1 : blockCount;
     }
 
-    _aes(message) {
+    async _aes(message) {
         const keyBuffer = forge.util.createBuffer(this._key, 'raw');
         const cipher = forge.cipher.createCipher('AES-CBC', keyBuffer);
 

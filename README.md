@@ -75,6 +75,16 @@ All the user has to do is to play a DRM protected video. With everything set up 
 * If those aren't working as well, this automatically means that the license server is blocking your CDM and that you either need a CDM from a physical device, a ChromeCDM, or an L1 Android CDM. Don't ask where you can get these.
 * If those are working but Vineless isn't working, please report this on the issues page. Please include the DevTools console logs as well, and make sure the verbose/debug logs are enabled.
 
+## Build
+* Requirements: Node.js (with npm), Git (if cloning from GitHub)
+```sh
+git clone https://github.com/Ingan121/Vineless
+cd Vineless
+npm install
+npm run build
+# The build output will be in the `dist` directory
+```
+
 ## Disclaimer
 + This program is intended solely for educational purposes.
 + Do not use this program to decrypt or access any content for which you do not have the legal rights or explicit permission.

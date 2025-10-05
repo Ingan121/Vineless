@@ -6,8 +6,9 @@ import {
     uint8ArrayToBase64,
     compareUint8Arrays
 } from "../../util.js";
+import { license_protocol } from "./license_protocol.js";
 
-const { LicenseType } = protobuf.roots.default.license_protocol;
+const { LicenseType } = license_protocol;
 
 export class WidevineLocal {
     constructor(host, keySystem, sessionId, tab) {

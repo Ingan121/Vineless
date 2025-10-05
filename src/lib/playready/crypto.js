@@ -1,7 +1,7 @@
 import { Utils } from "./utils.js";
 import { p256, utils } from './noble-curves.min.js';
 import { ElGamal } from "./elgamal.js";
-import '../forge.min.js';
+import forge from "../forge.min.js";
 
 export class Crypto {
     static ecc256decrypt(private_key, ciphertext) {

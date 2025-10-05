@@ -3,3 +3,4 @@
 *.crx
 devices/private
 dist/
+node_modules/

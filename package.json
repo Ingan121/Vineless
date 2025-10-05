@@ -1,0 +1,35 @@
+{
+    "name": "vineless",
+    "version": "2.2",
+    "description": "Play protected contents without a real CDM",
+    "main": "build.js",
+    "scripts": {
+        "build": "npx rollup -c && node build.js"
+    },
+    "keywords": [
+        "chrome-extension",
+        "firefox-addon",
+        "drm",
+        "widevine",
+        "playready",
+        "encrypted-media"
+    ],
+    "author": "Ingan121",
+    "license": "GPL-3.0-only",
+    "dependencies": {
+        "@noble/curves": "^1.9.7",
+        "@xmldom/xmldom": "^0.8.11",
+        "forge": "^2.3.0",
+        "protobufjs": "^7.5.4"
+    },
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "^28.0.6",
+        "@rollup/plugin-node-resolve": "^16.0.2",
+        "archiver": "^7.0.1",
+        "protobufjs-cli": "^1.1.3",
+        "protoc": "^32.1.0",
+        "protoc-gen-js": "^3.21.4-4",
+        "rollup": "^2.79.2",
+        "rollup-plugin-terser": "^7.0.2"
+    }
+}

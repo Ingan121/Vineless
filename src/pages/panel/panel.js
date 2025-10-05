@@ -1,5 +1,3 @@
-import "../../lib/widevine/protobuf.min.js";
-import "../../lib/widevine/license_protocol.js";
 import {
     AsyncLocalStorage,
     AsyncSessionStorage,

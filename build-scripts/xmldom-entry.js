@@ -1,0 +1,1 @@
+export { DOMParser } from '@xmldom/xmldom';

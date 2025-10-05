@@ -1,4 +1,5 @@
-const { ClientIdentification, SignedDrmCertificate, DrmCertificate } = protobuf.roots.default.license_protocol;
+import { license_protocol } from "./license_protocol.js";
+const { ClientIdentification, SignedDrmCertificate, DrmCertificate } = license_protocol;
 
 export class Crc32 {
     constructor() {

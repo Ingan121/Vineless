@@ -9,9 +9,11 @@ import {
     uint8ArrayToBase64,
     intToUint8Array
 } from "../../util.js"
+import { license_protocol } from "./license_protocol.js"
+import forge from "../forge.min.js";
 
 const { ClientIdentification, DrmCertificate, EncryptedClientIdentification, License, LicenseRequest, LicenseType,
-    ProtocolVersion, SignedDrmCertificate, SignedMessage, WidevinePsshData } = protobuf.roots.default.license_protocol;
+    ProtocolVersion, SignedDrmCertificate, SignedMessage, WidevinePsshData } = license_protocol;
 
 export const SERVICE_CERTIFICATE_CHALLENGE = new Uint8Array([0x08, 0x04]);
 
