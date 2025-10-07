@@ -35,7 +35,7 @@ function zipSrc(version) {
     archive.on('error', err => { throw err; });
 
     archive.pipe(output);
-    archive.directory(path.join(import.meta.dirname, 'src'), 'src');
+    archive.directory(path.join(import.meta.dirname, 'src'), false);
     archive.finalize();
 }
 
