@@ -1,0 +1,53 @@
+{
+    "type": "WIDEVINE",
+    "device_name": "DecryptLabs KeyXtractor",
+    "name_override": "DecryptLabs KeyXtractor (Trial till 29 Aug - EXPIRED)",
+    "device_type": "ANDROID",
+    "host": "https://keyxtractor.decryptlabs.com",
+    "security_level": 1,
+    "system_id": 12063,
+    "secret": "decrypt_labs_special_ultimate",
+    "_comment": "Only works on Firefox-based browsers due to the origin header replacement not working in Chromium MV3. Use a CORS proxy that strips the origin header for Chromium-based browsers.",
+    "sg_api_conf": {
+        "headers": {
+            "Content-Type": "application/json",
+            "decrypt-labs-api-key": "{secret}"
+        },
+        "overrideHeaders": {
+            "urls": ["*://keyxtractor.decryptlabs.com/*"],
+            "headers": {
+                "Origin": "null"
+            }
+        },
+        "generateChallenge": {
+            "url": "/get-request",
+            "bodyObj": {
+                "scheme": "L1",
+                "service": "generic",
+                "get_cached_keys_if_exists": false
+            },
+            "sessionIdKeyName": "session_id",
+            "psshKeyName": "init_data",
+            "serverCertKeyName": "service_certificate",
+            "sessionIdResKeyName": "session_id",
+            "challengeKeyName": "challenge"
+        },
+        "parseLicense": {
+            "url": "/decrypt-response",
+            "bodyObj": {
+                "scheme": "L1"
+            },
+            "sessionIdKeyName": "session_id",
+            "psshKeyName": "init_data",
+            "challengeKeyName": "license_request",
+            "licenseKeyName": "license_response",
+            "contentKeysKeyName": "keys"
+        },
+        "keyParseRules": {
+            "regex": {
+                "data": "--key ([0-9a-fA-F]+):([0-9a-fA-F]+)"
+            }
+        },
+        "messageKey": "Error"
+    }
+}

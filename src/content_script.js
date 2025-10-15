@@ -138,6 +138,8 @@
         }
     }
 
+    const decodingInfoUnaltered = navigator.mediaCapabilities?.decodingInfo;
+
     async function sanitizeConfigForClearKey(configOrConfigs) {
         const configs = Array.isArray(configOrConfigs) ? configOrConfigs : [configOrConfigs];
         const supportedConfigs = [];
@@ -185,9 +187,9 @@
                     };
 
                     let supported = true;
-                    if (navigator.mediaCapabilities?.decodingInfo) {
+                    if (decodingInfoUnaltered) {
                         try {
-                            const result = await navigator.mediaCapabilities.decodingInfo(mediaConfig);
+                            const result = await decodingInfoUnaltered.call(navigator.mediaCapabilities, mediaConfig);
                             supported = result.supported;
                         } catch (e) {
                             supported = false;
@@ -503,13 +505,15 @@
                         if (ckConfig.video?.contentType) {
                             ksc.videoCapabilities.push({
                                 contentType: ckConfig.video.contentType,
-                                robustness: config.keySystemConfiguration?.video?.robustness || ""
+                                robustness: config.keySystemConfiguration?.video?.robustness || "",
+                                encryptionScheme: config.keySystemConfiguration?.video?.encryptionScheme || ""
                             });
                         }
                         if (ckConfig.audio?.contentType) {
                             ksc.audioCapabilities.push({
                                 contentType: ckConfig.audio.contentType,
-                                robustness: config.keySystemConfiguration?.audio?.robustness || ""
+                                robustness: config.keySystemConfiguration?.audio?.robustness || "",
+                                encryptionScheme: config.keySystemConfiguration?.audio?.encryptionScheme || ""
                             });
                         }
 
@@ -568,17 +572,15 @@
                         // Patch `getConfiguration()` to reflect original input
                         access.getConfiguration = () => ({
                             ...access._getRealConfiguration(),
-                            videoCapabilities: ckConfig.keySystemConfiguration.videoCapabilities,
-                            audioCapabilities: ckConfig.keySystemConfiguration.audioCapabilities,
-                            sessionTypes: ckConfig.keySystemConfiguration.sessionTypes,
-                            initDataTypes: ckConfig.keySystemConfiguration.initDataTypes
+                            videoCapabilities: ksc.videoCapabilities,
+                            audioCapabilities: ksc.audioCapabilities,
+                            sessionTypes: ksc.sessionTypes,
+                            initDataTypes: ksc.initDataTypes
                         });
 
                         return {
                             ...ckResult,
                             supported: true,
-                            smooth: true,
-                            powerEfficient: true,
                             keySystemAccess: access
                         };
                     } catch (e) {
