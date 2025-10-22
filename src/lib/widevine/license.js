@@ -124,11 +124,6 @@ export class Session {
                     throw new Error(`Invalid System ID in PSSH Box: ${uint8ArrayToHex(this._pssh.subarray(12, 28))}`)
                 }
             }
-
-            const pssh = this._parseWidevinePsshData(this._pssh)
-            if (!pssh) {
-                throw new Error("Invalid WidevinePsshData found")
-            }
         }
 
         const request_id = android ? this._generateAndroidIdentifier() : this._generateGenericIdentifier();
@@ -367,7 +362,8 @@ export class Session {
     _parseWidevinePsshData(pssh) {
         try {
             return WidevinePsshData.decode(pssh)
-        } catch {
+        } catch (e) {
+            console.warn("[Vineless]", "Failed to parse WidevinePsshData:", e);
             return null
         }
     }
