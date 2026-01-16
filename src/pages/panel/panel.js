@@ -1,3 +1,5 @@
+import "../../lib/widevine/protobuf.min.js";
+import "../../lib/widevine/license_protocol.js";
 import {
     AsyncLocalStorage,
     AsyncSessionStorage,
@@ -291,12 +293,14 @@ prCustomCombobox.addEventListener('change', function () {
 // #endregion Custom Handlers
 
 // #region Command Options
+const commandUseOrNot = document.getElementById('use-command');
 const decryptionEngineSelect = document.getElementById('decryption-engine-select');
 const muxerSelect = document.getElementById('muxer-select');
 const formatSelect = document.getElementById('format-select');
 const videoStreamSelect = document.getElementById('video-stream-select');
 const audioAllCheckbox = document.getElementById('audio-all');
 const subsAllCheckbox = document.getElementById('subs-all');
+const mtAllCheckbox = document.getElementById('multi-thread');
 
 const downloaderName = document.getElementById('downloader-name');
 downloaderName.addEventListener('input', function () {
@@ -306,12 +310,14 @@ downloaderName.addEventListener('input', function () {
 
 async function saveCommandOptions() {
     const opts = {
+        commandOption: commandUseOrNot.checked,
         decryptionEngine: decryptionEngineSelect.value,
         muxer: muxerSelect.value,
         format: formatSelect.value,
         videoStream: videoStreamSelect.value,
         audioAll: audioAllCheckbox.checked,
-        subsAll: subsAllCheckbox.checked
+        subsAll: subsAllCheckbox.checked,
+        multiThread: mtAllCheckbox.checked
     };
     await SettingsManager.saveCommandOptions(opts);
     await reloadAllCommands();
@@ -319,21 +325,25 @@ async function saveCommandOptions() {
 
 async function restoreCommandOptions() {
     const opts = await SettingsManager.getCommandOptions?.() || {};
+    commandUseOrNot.checked = !!opts.commandOption;
     decryptionEngineSelect.value = opts.decryptionEngine || 'SHAKA_PACKAGER';
     muxerSelect.value = opts.muxer || 'ffmpeg';
     formatSelect.value = opts.format || 'mp4';
     videoStreamSelect.value = opts.videoStream || 'best';
     audioAllCheckbox.checked = !!opts.audioAll;
     subsAllCheckbox.checked = !!opts.subsAll;
+    mtAllCheckbox.checked = !!opts.multiThread;
 }
 
 [
+    commandUseOrNot,
     decryptionEngineSelect,
     muxerSelect,
     formatSelect,
     videoStreamSelect,
     audioAllCheckbox,
-    subsAllCheckbox
+    subsAllCheckbox,
+	mtAllCheckbox
 ].forEach(elem => {
     elem.addEventListener('change', saveCommandOptions);
 });
@@ -346,11 +356,23 @@ clear.addEventListener('click', async function() {
     storage.clear();
     keyContainer.innerHTML = "";
 });
+// #master Switch for Commands
+const useCommand = document.getElementById("use-command");
+const fieldset = document.querySelector("fieldset");
+
+useCommand.addEventListener("change", () => {
+    fieldset.querySelectorAll("select, input:not(#use-command)")
+        .forEach(el => el.disabled = !useCommand.checked);
+});
 
 async function createCommand(json, keyString, title) {
     const metadata = JSON.parse(json);
     const headerString = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
 
+    // Master switch
+    const useCommandCheckbox = document.getElementById("use-command");
+    if (!useCommandCheckbox.checked) {return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${keyString}`.trim();}
+    
     // Get selected decryption engine
     let engineArg = `--decryption-engine ${decryptionEngineSelect.value}`;
 
@@ -364,8 +386,10 @@ async function createCommand(json, keyString, title) {
     const videoStream = videoStreamSelect.value;
     if (videoStream === "best") streamArgs.push('-sv best');
     if (videoStream === "1080") streamArgs.push('-sv res="1080*"');
+    if (videoStream === "720") streamArgs.push('-sv res="720*"');
     if (audioAllCheckbox.checked) streamArgs.push('-sa all');
     if (subsAllCheckbox.checked) streamArgs.push('-ss all');
+    if (mtAllCheckbox.checked) streamArgs.push('-mt');
 
     return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${headerString} ${keyString} ${engineArg} ${formatMuxerArg} ${streamArgs.join(' ')}${title ? ` --save-name "${title}"` : ""}`.trim();
 }

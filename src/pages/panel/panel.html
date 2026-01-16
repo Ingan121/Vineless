@@ -114,6 +114,12 @@
         <summary>Command Options</summary>
         <fieldset>
             <legend>Command Options</legend>
+            <div>
+                <input type="checkbox" id="use-command">
+                <label for="use-command">Use Preset Command</label>
+                <input type="checkbox" id="multi-thread">
+                <label for="multi-thread">ParallelDL (N_m3u8DL-RE)</label>
+            </div>
             <div id="decryption-engine-group">
                 <label>Decryption Engine:</label>
                 <select id="decryption-engine-select">
@@ -140,6 +146,7 @@
                 <select id="video-stream-select">
                     <option value="best">Best available video</option>
                     <option value="1080">1080p video</option>
+                    <option value="720">720p video</option>
                 </select>
             </div>
             <div>
