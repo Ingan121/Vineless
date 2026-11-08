@@ -654,13 +654,13 @@ export class SettingsManager {
         }
     }
 
-    static async saveExecutableName(exeName) {
-        await AsyncSyncStorage.setStorage({ exe_name: exeName });
+    static async saveBaseCommand(baseCommand) {
+        await AsyncSyncStorage.setStorage({ base_command: baseCommand });
     }
 
-    static async getExecutableName() {
-        const result = await AsyncSyncStorage.getStorage(["exe_name"]);
-        return result["exe_name"] ?? "N_m3u8DL-RE";
+    static async getBaseCommand() {
+        const result = await AsyncSyncStorage.getStorage(["base_command"]);
+        return result["base_command"] ?? "N_m3u8DL-RE";
     }
     
     static async getUICollapsed() {

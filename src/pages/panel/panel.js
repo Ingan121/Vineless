@@ -291,9 +291,9 @@ prCustomCombobox.addEventListener('change', function () {
 // #endregion Custom Handlers
 
 // #region Command Options
-const downloaderName = document.getElementById('downloader-name');
-downloaderName.addEventListener('input', function () {
-    SettingsManager.saveExecutableName(downloaderName.value);
+const baseCommand = document.getElementById('base-command');
+baseCommand.addEventListener('input', function () {
+    SettingsManager.saveBaseCommand(baseCommand.value);
     reloadAllCommands();
 });
 // #endregion Command Options
@@ -310,7 +310,7 @@ async function createCommand(json, keyString, title) {
     const metadata = JSON.parse(json);
     const headerString = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
 
-    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${headerString} ${keyString}${title ? ` --save-name "${title}"` : ""}`.trim();
+    return `${await SettingsManager.getBaseCommand()} "${metadata.url}" ${headerString} ${keyString}${title ? ` --save-name "${title}"` : ""}`.trim();
 }
 
 async function reloadAllCommands() {
@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (currentTab.incognito) {
             keysLabel.textContent = "Keys (Incognito)";
         }
-        downloaderName.value = await SettingsManager.getExecutableName();
+        baseCommand.value = await SettingsManager.getBaseCommand();
         CustomHandlerManager.loadSetAllCustomHandlers();
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();

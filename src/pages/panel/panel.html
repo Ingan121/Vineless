@@ -114,8 +114,10 @@
         <summary>Command Options</summary>
         <fieldset>
             <legend>Command Options</legend>
-            <label for="downloader-name">Executable name: </label>
-            <input type="text" class="text-box" id="downloader-name">
+            <div class="command-field">
+                <label for="base-command" title="Executable name with optional arguments. The URL, headers and keys are appended automatically.">Base command:</label>
+                <input type="text" class="text-box" id="base-command" placeholder="N_m3u8DL-RE --decryption-engine SHAKA_PACKAGER">
+            </div>
         </fieldset>
     </details>
     <details id="advanced" class="collapsible-section">
