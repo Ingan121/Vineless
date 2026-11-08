@@ -663,6 +663,15 @@ export class SettingsManager {
         return result["base_command"] ?? "N_m3u8DL-RE";
     }
     
+    static async saveSaveNameOptions(opts) {
+        await AsyncSyncStorage.setStorage({ save_name_options: opts });
+    }
+
+    static async getSaveNameOptions() {
+        const result = await AsyncSyncStorage.getStorage(["save_name_options"]);
+        return result["save_name_options"] ?? { mode: "title", custom: "" };
+    }
+
     static async getUICollapsed() {
         const result = await AsyncSyncStorage.getStorage(['uiCollapsed']);
         return result.uiCollapsed || { devicesCollapsed: false, commandsCollapsed: true, advancedCollapsed: true };

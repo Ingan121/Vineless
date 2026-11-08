@@ -296,6 +296,35 @@ baseCommand.addEventListener('input', function () {
     SettingsManager.saveBaseCommand(baseCommand.value);
     reloadAllCommands();
 });
+
+const saveNameSelect = document.getElementById('save-name-select');
+const saveNameInput = document.getElementById('save-name-input');
+
+function updateSaveNameInputVisibility() {
+    saveNameInput.hidden = saveNameSelect.value !== 'custom';
+}
+
+async function saveSaveNameOptions() {
+    const opts = {
+        mode: saveNameSelect.value,
+        custom: saveNameInput.value
+    };
+    await SettingsManager.saveSaveNameOptions(opts);
+    await reloadAllCommands();
+}
+
+async function restoreSaveNameOptions() {
+    const opts = await SettingsManager.getSaveNameOptions?.() || {};
+    saveNameSelect.value = opts.mode || 'title';
+    saveNameInput.value = opts.custom || '';
+    updateSaveNameInputVisibility();
+}
+
+saveNameSelect.addEventListener('change', function () {
+    updateSaveNameInputVisibility();
+    saveSaveNameOptions();
+});
+saveNameInput.addEventListener('input', saveSaveNameOptions);
 // #endregion Command Options
 
 // #region Logs
@@ -310,7 +339,20 @@ async function createCommand(json, keyString, title) {
     const metadata = JSON.parse(json);
     const headerString = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
 
-    return `${await SettingsManager.getBaseCommand()} "${metadata.url}" ${headerString} ${keyString}${title ? ` --save-name "${title}"` : ""}`.trim();
+    // --save-name: Title (default) / Custom / None
+    let saveName = "";
+    switch (saveNameSelect.value) {
+        case 'custom':
+            saveName = saveNameInput.value.trim();
+            break;
+        case 'none':
+            break;
+        default:
+            saveName = title;
+            break;
+    }
+
+    return `${await SettingsManager.getBaseCommand()} "${metadata.url}" ${headerString} ${keyString}${saveName ? ` --save-name "${saveName}"` : ""}`.trim();
 }
 
 async function reloadAllCommands() {
@@ -669,6 +711,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             keysLabel.textContent = "Keys (Incognito)";
         }
         baseCommand.value = await SettingsManager.getBaseCommand();
+        await restoreSaveNameOptions();
         CustomHandlerManager.loadSetAllCustomHandlers();
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();
