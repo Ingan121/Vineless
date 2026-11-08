@@ -16,8 +16,23 @@ body {
     width: 80%;
     user-select: auto;
 }
-#downloader-name {
-    width: 160px;
+.command-field > label {
+    display: block;
+    margin-bottom: 2px;
+}
+.command-field > input {
+    width: 100%;
+    box-sizing: border-box;
+}
+.save-name-row {
+    display: flex;
+    gap: 5px;
+}
+.save-name-row > input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 a {

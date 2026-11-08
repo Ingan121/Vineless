@@ -291,52 +291,40 @@ prCustomCombobox.addEventListener('change', function () {
 // #endregion Custom Handlers
 
 // #region Command Options
-const decryptionEngineSelect = document.getElementById('decryption-engine-select');
-const muxerSelect = document.getElementById('muxer-select');
-const formatSelect = document.getElementById('format-select');
-const videoStreamSelect = document.getElementById('video-stream-select');
-const audioAllCheckbox = document.getElementById('audio-all');
-const subsAllCheckbox = document.getElementById('subs-all');
-
-const downloaderName = document.getElementById('downloader-name');
-downloaderName.addEventListener('input', function () {
-    SettingsManager.saveExecutableName(downloaderName.value);
+const baseCommand = document.getElementById('base-command');
+baseCommand.addEventListener('input', function () {
+    SettingsManager.saveBaseCommand(baseCommand.value);
     reloadAllCommands();
 });
 
-async function saveCommandOptions() {
+const saveNameSelect = document.getElementById('save-name-select');
+const saveNameInput = document.getElementById('save-name-input');
+
+function updateSaveNameInputVisibility() {
+    saveNameInput.hidden = saveNameSelect.value !== 'custom';
+}
+
+async function saveSaveNameOptions() {
     const opts = {
-        decryptionEngine: decryptionEngineSelect.value,
-        muxer: muxerSelect.value,
-        format: formatSelect.value,
-        videoStream: videoStreamSelect.value,
-        audioAll: audioAllCheckbox.checked,
-        subsAll: subsAllCheckbox.checked
+        mode: saveNameSelect.value,
+        custom: saveNameInput.value
     };
-    await SettingsManager.saveCommandOptions(opts);
+    await SettingsManager.saveSaveNameOptions(opts);
     await reloadAllCommands();
 }
 
-async function restoreCommandOptions() {
-    const opts = await SettingsManager.getCommandOptions?.() || {};
-    decryptionEngineSelect.value = opts.decryptionEngine || 'SHAKA_PACKAGER';
-    muxerSelect.value = opts.muxer || 'ffmpeg';
-    formatSelect.value = opts.format || 'mp4';
-    videoStreamSelect.value = opts.videoStream || 'best';
-    audioAllCheckbox.checked = !!opts.audioAll;
-    subsAllCheckbox.checked = !!opts.subsAll;
+async function restoreSaveNameOptions() {
+    const opts = await SettingsManager.getSaveNameOptions?.() || {};
+    saveNameSelect.value = opts.mode || 'title';
+    saveNameInput.value = opts.custom || '';
+    updateSaveNameInputVisibility();
 }
 
-[
-    decryptionEngineSelect,
-    muxerSelect,
-    formatSelect,
-    videoStreamSelect,
-    audioAllCheckbox,
-    subsAllCheckbox
-].forEach(elem => {
-    elem.addEventListener('change', saveCommandOptions);
+saveNameSelect.addEventListener('change', function () {
+    updateSaveNameInputVisibility();
+    saveSaveNameOptions();
 });
+saveNameInput.addEventListener('input', saveSaveNameOptions);
 // #endregion Command Options
 
 // #region Logs
@@ -351,23 +339,20 @@ async function createCommand(json, keyString, title) {
     const metadata = JSON.parse(json);
     const headerString = Object.entries(metadata.headers).map(([key, value]) => `-H "${key}: ${value.replace(/"/g, "'")}"`).join(' ');
 
-    // Get selected decryption engine
-    let engineArg = `--decryption-engine ${decryptionEngineSelect.value}`;
+    // --save-name: Title (default) / Custom / None
+    let saveName = "";
+    switch (saveNameSelect.value) {
+        case 'custom':
+            saveName = saveNameInput.value.trim();
+            break;
+        case 'none':
+            break;
+        default:
+            saveName = title;
+            break;
+    }
 
-    // Get selected muxer and format, combine as required
-    const muxer = muxerSelect.value;
-    const format = formatSelect.value;
-    let formatMuxerArg = `-M format=${format}:muxer=${muxer}`;
-
-    // Stream options
-    let streamArgs = [];
-    const videoStream = videoStreamSelect.value;
-    if (videoStream === "best") streamArgs.push('-sv best');
-    if (videoStream === "1080") streamArgs.push('-sv res="1080*"');
-    if (audioAllCheckbox.checked) streamArgs.push('-sa all');
-    if (subsAllCheckbox.checked) streamArgs.push('-ss all');
-
-    return `${await SettingsManager.getExecutableName()} "${metadata.url}" ${headerString} ${keyString} ${engineArg} ${formatMuxerArg} ${streamArgs.join(' ')}${title ? ` --save-name "${title}"` : ""}`.trim();
+    return `${await SettingsManager.getBaseCommand()} "${metadata.url}" ${headerString} ${keyString}${saveName ? ` --save-name "${saveName}"` : ""}`.trim();
 }
 
 async function reloadAllCommands() {
@@ -725,8 +710,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (currentTab.incognito) {
             keysLabel.textContent = "Keys (Incognito)";
         }
-        downloaderName.value = await SettingsManager.getExecutableName();
-        await restoreCommandOptions();
+        baseCommand.value = await SettingsManager.getBaseCommand();
+        await restoreSaveNameOptions();
         CustomHandlerManager.loadSetAllCustomHandlers();
         await DeviceManager.loadSetAllWidevineDevices();
         await RemoteCDMManager.loadSetAllRemoteCDMs();

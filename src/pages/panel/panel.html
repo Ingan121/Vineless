@@ -114,43 +114,21 @@
         <summary>Command Options</summary>
         <fieldset>
             <legend>Command Options</legend>
-            <div id="decryption-engine-group">
-                <label>Decryption Engine:</label>
-                <select id="decryption-engine-select">
-                    <option value="SHAKA_PACKAGER">Shaka Packager</option>
-                    <option value="MP4DECRYPT">mp4decrypt</option>
-                    <option value="FFMPEG">FFmpeg</option>
-                </select>
+            <div class="command-field">
+                <label for="base-command" title="Executable name with optional arguments. The URL, headers and keys are appended automatically.">Base command:</label>
+                <input type="text" class="text-box" id="base-command" placeholder="N_m3u8DL-RE --decryption-engine SHAKA_PACKAGER">
             </div>
-            <div>
-                <label>Muxer:</label>
-                <select id="muxer-select">
-                    <option value="ffmpeg">ffmpeg</option>
-                    <option value="mkvmerge">mkvmerge</option>
-                </select>
-                <label>Format:</label>
-                <select id="format-select">
-                    <option value="mp4">mp4</option>
-                    <option value="mkv">mkv</option>
-                    <option value="ts">ts</option>
-                </select>
+            <div class="command-field">
+                <label for="save-name-select" title="Controls the --save-name option of the generated command.">Save name:</label>
+                <div class="save-name-row">
+                    <select id="save-name-select">
+                        <option value="title" selected>Title</option>
+                        <option value="custom">Custom</option>
+                        <option value="none">None</option>
+                    </select>
+                    <input type="text" class="text-box" id="save-name-input" placeholder="Custom save name" hidden>
+                </div>
             </div>
-            <div>
-                <label>Video Stream:</label>
-                <select id="video-stream-select">
-                    <option value="best">Best available video</option>
-                    <option value="1080">1080p video</option>
-                </select>
-            </div>
-            <div>
-                <label>Audio & Subtitle Streams:</label><br>
-                <input type="checkbox" id="audio-all">
-                <label for="audio-all">All audio tracks</label>
-                <input type="checkbox" id="subs-all">
-                <label for="subs-all">All subtitle tracks</label>
-            </div>
-            <label for="downloader-name">Executable name: </label>
-            <input type="text" class="text-box" id="downloader-name">
         </fieldset>
     </details>
     <details id="advanced" class="collapsible-section">
