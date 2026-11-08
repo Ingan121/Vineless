@@ -532,7 +532,12 @@ async function appendLog(result, testDuplicate) {
 
     logContainer.log = result;
 
-    keyContainer.appendChild(logContainer);
+    // Keep the list sorted by timestamp in descending order (newest first).
+    // On equal timestamps, the later arrival is placed above the existing entry.
+    const timestamp = result.timestamp ?? 0;
+    const nextContainer = Array.from(keyContainer.querySelectorAll('.log-container'))
+        .find(container => (container.log.timestamp ?? 0) <= timestamp);
+    keyContainer.insertBefore(logContainer, nextContainer ?? null);
 
     updateIcon();
 }
